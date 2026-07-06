@@ -4,6 +4,7 @@ function showPage(p){
   if(el) el.classList.remove("hidden");
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.page === p));
   if(p === "admin"){ loadUsers(); loadPlayers(); }
+  if(p === "board"){ loadLeaderboard(); }
 }
 window.showPage = showPage;
 
@@ -39,12 +40,16 @@ function renderAuth(){
         ? "👑 Mode admin — tu pilotes les jeux en direct."
         : "🎮 Prêt(e) à jouer ? Choisis ton défi et fais monter le score !");
 
-  // Aiguillage de page
+  // Les vues de jeu dépendent du rôle (joueur/admin) → re-rendu
+  if(typeof renderBingoAvailability === "function") renderBingoAvailability();
+  if(typeof renderWho === "function" && sb) renderWho();
+
+  // Aiguillage de page — le Qui suis-je est le jeu principal
   if(!loggedIn){
     showPage("gate");
   } else {
     const active = document.querySelector(".tab.active")?.dataset.page;
-    showPage(active && active !== "gate" ? active : "bingo");
+    showPage(active && active !== "gate" ? active : "who");
   }
 }
 
