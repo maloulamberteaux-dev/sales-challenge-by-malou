@@ -4,17 +4,54 @@ function shuffle(a){
   return [...a].sort(() => Math.random() - .5);
 }
 
+// Échappe le HTML (noms, missions... tout ce qui vient des données)
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+// "il y a 5 min", "à l'instant"...
+function timeAgo(iso){
+  if(!iso) return "";
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if(s < 60) return "à l'instant";
+  if(s < 3600) return `il y a ${Math.floor(s/60)} min`;
+  if(s < 86400) return `il y a ${Math.floor(s/3600)} h`;
+  return `il y a ${Math.floor(s/86400)} j`;
+}
+
+// Rang gamifié selon la progression
+function rankFor(pct, win){
+  if(win) return {e:"👑", l:"Légende"};
+  if(pct >= 75) return {e:"🚀", l:"Machine"};
+  if(pct >= 50) return {e:"💪", l:"Closer"};
+  if(pct >= 25) return {e:"🔥", l:"Chasseur"};
+  if(pct > 0) return {e:"⚡", l:"Lancé(e)"};
+  return {e:"🐣", l:"Rookie"};
+}
+
+// Une carte bingo a-t-elle une ligne/colonne/diagonale complète ?
+function hasBingoCard(card){
+  const n = card?.size || 4, cells = card?.cells || [];
+  const ck = i => !!cells[i]?.checked;
+  for(let r = 0; r < n; r++) if([...Array(n)].every((_, c) => ck(r * n + c))) return true;
+  for(let c = 0; c < n; c++) if([...Array(n)].every((_, r) => ck(r * n + c))) return true;
+  if([...Array(n)].every((_, i) => ck(i * n + i))) return true;
+  if([...Array(n)].every((_, i) => ck(i * n + n - 1 - i))) return true;
+  return false;
+}
+
 function confetti(){
-  for(let i = 0; i < 90; i++){
+  for(let i = 0; i < 120; i++){
     let c = document.createElement("div");
-    c.style.cssText = `position:fixed;top:-10px;left:${Math.random()*100}vw;width:10px;height:14px;background:${["#ff4fb8","#7b2cff","#ffd65a"][Math.floor(Math.random()*3)]};z-index:99;animation:fall 1.4s linear forwards`;
+    let size = 8 + Math.random() * 8;
+    c.style.cssText = `position:fixed;top:-12px;left:${Math.random()*100}vw;width:${size}px;height:${size*1.3}px;border-radius:3px;background:${["#ff4fb8","#7b2cff","#ffd65a","#4fd8ff"][Math.floor(Math.random()*4)]};z-index:99;animation:fall ${1.2+Math.random()*.9}s linear forwards`;
     document.body.appendChild(c);
-    setTimeout(() => c.remove(), 1600);
+    setTimeout(() => c.remove(), 2200);
   }
 }
 
 let st = document.createElement("style");
-st.innerHTML = "@keyframes fall{to{transform:translateY(105vh) rotate(500deg);opacity:.2}}";
+st.innerHTML = "@keyframes fall{to{transform:translateY(105vh) rotate(520deg);opacity:.15}}";
 document.head.appendChild(st);
 
 

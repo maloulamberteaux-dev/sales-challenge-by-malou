@@ -1,4 +1,5 @@
 let bingoSettings = {size:4, reward:"50 € pour le premier Bingo", tasks:["3 recos prises dans la journée", "2 abos dans une démo groupée", "Faire une blague dans un call", "6 abos dans la journée"]};
+let hadBingo = false; // pour ne lancer les confettis qu'au moment du bingo
 
 async function loadBingoSettings(){
   let {data, error} = await sb.from("game_state").select("data").eq("id", "bingo_settings").single();
@@ -11,7 +12,7 @@ function renderBingoSettings(){
   $("bingoSize").value = bingoSettings.size || 4;
   $("bingoReward").value = bingoSettings.reward || "50 € pour le premier Bingo";
   $("bingoTasks").value = (bingoSettings.tasks || []).join("\n");
-  $("rewardTxt").textContent = bingoSettings.reward || "50 € pour le premier Bingo";
+  $("rewardTxt").textContent = "🏆 " + (bingoSettings.reward || "50 € pour le premier Bingo");
 }
 
 async function loadBingo(player){
@@ -42,7 +43,7 @@ function createBingoCard(){
 
 function renderBingo(card){
   $("bingoName").textContent = currentPlayer || "...";
-  $("rewardTxt").textContent = card.reward || bingoSettings.reward;
+  $("rewardTxt").textContent = "🏆 " + (card.reward || bingoSettings.reward);
   let n = card.size || 4;
   let b = $("bingoBoard");
   b.style.gridTemplateColumns = `repeat(${n},1fr)`;
@@ -51,16 +52,39 @@ function renderBingo(card){
   card.cells.forEach((it) => {
     let c = document.createElement("button");
     c.className = "bingoCell";
-    c.textContent = it.t;
+    c.innerHTML = `<span class="cellTxt">${esc(it.t)}</span><span class="tick">✓</span>`;
     if(it.checked) c.classList.add("checked");
     c.onclick = async () => {
+      // Bascule en place (pas de re-render complet → animations fluides)
       it.checked = !it.checked;
+      c.classList.toggle("checked", it.checked);
+      if(it.checked){
+        c.classList.remove("pop");
+        void c.offsetWidth; // relance l'animation
+        c.classList.add("pop");
+      }
+      updateBingoStats(card);
+      checkBingo(n);
       await sb.from("bingo_cards").upsert({player:currentPlayer, data:card, updated_at:new Date().toISOString()});
-      renderBingo(card);
     };
     b.appendChild(c);
   });
+  updateBingoStats(card);
   checkBingo(n);
+}
+
+// Met à jour les compteurs, le rang et la barre de progression du panneau
+function updateBingoStats(card){
+  const cells = card.cells || [];
+  const total = cells.length;
+  const done = cells.filter(c => c.checked).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const r = rankFor(pct, hasBingoCard(card));
+  $("statDone").textContent = done;
+  $("statLeft").textContent = total - done;
+  $("statRank").textContent = r.e;
+  $("statRankLabel").textContent = r.l;
+  $("bingoBar").style.width = pct + "%";
 }
 
 function checkBingo(n){
@@ -76,21 +100,63 @@ function checkBingo(n){
     if(l.every(i => c[i]?.classList.contains("checked"))){
       l.forEach(i => c[i].classList.add("win"));
       $("bingoMsg").textContent = "🎉 BINGOOOOOO !!!";
-      confetti();
+      if(!hadBingo) confetti();
+      hadBingo = true;
       return;
     }
   }
-  $("bingoMsg").textContent = "🔥 Continue, chaque mission te rapproche du Bingo !";
+  hadBingo = false;
+  const done = document.querySelectorAll(".bingoCell.checked").length;
+  const total = c.length || 1;
+  if(done === 0) $("bingoMsg").textContent = "🔥 Coche ta première mission pour lancer la partie !";
+  else if(done / total < .5) $("bingoMsg").textContent = "💪 C'est parti, continue comme ça !";
+  else $("bingoMsg").textContent = "⚡ Ça chauffe, le Bingo se rapproche !";
 }
 
+// --- Listes admin ---
+
+// Grilles bingo de tous les joueurs, triées par progression
 async function loadPlayers(){
   if(!sb) return;
   let {data} = await sb.from("bingo_cards").select("player,data").order("updated_at", {ascending:false});
-  $("adminPlayers").innerHTML = (data || []).map(row => {
-    let total = row.data.cells?.length || 0;
-    let done = row.data.cells?.filter(c => c.checked).length || 0;
-    return `<div class="playerCard">💜 ${row.player}<br>${done}/${total} cases cochées</div>`;
-  }).join("") || "Aucun joueur pour l’instant.";
+  let rows = (data || []).map(r => {
+    const cells = r.data.cells || [];
+    const total = cells.length, done = cells.filter(c => c.checked).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    return {player:r.player, total, done, pct, win:hasBingoCard(r.data)};
+  }).sort((a, b) => (b.win - a.win) || (b.pct - a.pct));
+
+  $("adminPlayers").innerHTML = rows.map(r => {
+    const rk = rankFor(r.pct, r.win);
+    return `<div class="playerCard">
+      <div class="pInfo">
+        <strong>${r.win ? "👑" : "💜"} ${esc(r.player)}</strong>
+        <small>${r.done}/${r.total} missions · ${rk.l}</small>
+        <div class="bar mini"><div style="width:${r.pct}%"></div></div>
+      </div>
+      <span class="rank">${rk.e}</span>
+    </div>`;
+  }).join("") || "<p>Aucune grille ouverte pour l'instant 💤</p>";
+}
+
+// Utilisateurs connectés (table players, remplie à chaque connexion Google)
+async function loadUsers(){
+  if(!sb) return;
+  let {data, error} = await sb.from("players").select("*").order("last_seen", {ascending:false});
+  if(error){
+    $("usersList").innerHTML = "<p>⚠️ Table <b>players</b> absente — lance le SQL de setup.</p>";
+    return;
+  }
+  $("usersList").innerHTML = (data || []).map(u => `
+    <div class="playerCard">
+      ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}
+      <div class="pInfo">
+        <strong>${esc(u.name || u.email)}</strong>
+        <small>${esc(u.email)}</small>
+        <small>🕐 ${timeAgo(u.last_seen)}</small>
+      </div>
+      ${u.is_admin ? '<span class="badge">👑</span>' : ''}
+    </div>`).join("") || "<p>Personne ne s'est encore connecté 💤</p>";
 }
 
 function bindBingoEvents(){

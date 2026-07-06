@@ -43,8 +43,21 @@ async function handleSession(session){
   renderAuth();
   if(currentPlayer){
     $("bingoName").textContent = currentPlayer;
+    upsertPlayerProfile(); // trace la connexion dans la table players (non bloquant)
     await openBingo();
   }
+}
+
+// Enregistre/actualise le profil du joueur connecté (pour l'onglet Utilisateurs de l'admin)
+async function upsertPlayerProfile(){
+  if(!sb || !currentUser?.email) return;
+  await sb.from("players").upsert({
+    email: currentUser.email.toLowerCase(),
+    name: currentPlayer,
+    avatar: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || "",
+    is_admin: admin,
+    last_seen: new Date().toISOString()
+  });
 }
 
 async function signInWithGoogle(){

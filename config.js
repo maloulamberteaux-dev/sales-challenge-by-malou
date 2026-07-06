@@ -3,7 +3,6 @@ window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 
 // 👑 Adresses Gmail autorisées comme ADMIN.
 // Toute personne connectée avec un de ces emails passe en mode admin automatiquement.
-// ⚠️ Remplace par le(s) vrai(s) Gmail admin (celui de Malou).
 window.ADMIN_EMAILS = [
-  "malou@gmail.com"
+  "malou.lamberteaux@gmail.com"
 ];

@@ -21,35 +21,45 @@ async function saveWho(){
   return ok;
 }
 
+// Construit (ou réutilise) les tuiles — la réutilisation permet l'animation CSS de révélation
 function buildTiles(){
   let n = +who.grid || 10;
   let t = $("tiles");
-  t.innerHTML = "";
-  t.style.gridTemplateColumns = `repeat(${n},1fr)`;
-  t.style.gridTemplateRows = `repeat(${n},1fr)`;
   let total = n * n;
   who.hidden = who.hidden?.length === total ? who.hidden : Array(total).fill(false);
 
-  for(let i = 0; i < total; i++){
-    let d = document.createElement("div");
-    d.className = "tile";
-    if(who.hidden?.[i]) d.classList.add("off");
-    d.onclick = async () => {
-      if(!admin) return;
-      who.hidden[i] = !who.hidden[i];
-      await saveWho();
-    };
-    t.appendChild(d);
+  if(t.children.length !== total){
+    t.innerHTML = "";
+    t.style.gridTemplateColumns = `repeat(${n},1fr)`;
+    t.style.gridTemplateRows = `repeat(${n},1fr)`;
+    for(let i = 0; i < total; i++){
+      let d = document.createElement("div");
+      d.className = "tile";
+      d.onclick = async () => {
+        if(!admin) return;
+        who.hidden[i] = !who.hidden[i];
+        await saveWho();
+      };
+      t.appendChild(d);
+    }
   }
+  [...t.children].forEach((d, i) => d.classList.toggle("off", !!who.hidden[i]));
 }
 
 function renderWho(){
+  let n = +who.grid || 10;
+  let total = n * n;
+  who.hidden = who.hidden?.length === total ? who.hidden : Array(total).fill(false);
+  const revealed = who.hidden.filter(Boolean).length;
+  const pct = Math.round(revealed / total * 100);
+
   $("whoGoal").value = who.goal || 37;
-  $("whoGrid").value = who.grid || 10;
+  $("whoGrid").value = n;
   $("whoAnswer").value = who.answer || "";
   $("answerBox").textContent = who.answer || "Réponse masquée";
   $("subs").textContent = who.subs || 0;
   $("goalText").textContent = who.goal || 37;
+  $("whoRevealed").textContent = pct + "%";
   $("bar").style.width = Math.min(100, (who.subs || 0) / (who.goal || 37) * 100) + "%";
   $("clue").textContent = who.clue || "💡 Indice : pas encore dévoilé";
 
@@ -63,6 +73,14 @@ function renderWho(){
     $("placeholder").style.display = "block";
   }
   $("whoImg").style.filter = `blur(${who.blur ?? 18}px)`;
+
+  // Message d'ambiance selon la progression
+  if(!who.image) $("whoMsg").textContent = "🕵️ Le jeu va commencer, ouvre l'œil !";
+  else if(pct === 0) $("whoMsg").textContent = "🔒 Photo 100% mystère... à vos ventes !";
+  else if(pct < 40) $("whoMsg").textContent = `🔍 ${pct}% dévoilé — une petite idée ?`;
+  else if(pct < 80) $("whoMsg").textContent = `👀 ${pct}% dévoilé — ça se précise !`;
+  else $("whoMsg").textContent = `🚨 ${pct}% dévoilé — quelqu'un a la réponse ?!`;
+
   buildTiles();
 }
 
