@@ -1,13 +1,24 @@
 let who = {subs:0, goal:37, grid:10, blur:18, hidden:[], clue:"💡 Indice : pas encore dévoilé", answer:"", image:""};
 
 async function loadWho(){
-  let {data, error} = await sb.from("game_state").select("data").eq("id", "who").single();
+  let {data, error} = await sb.from("game_state").select("data").eq("id", "who").maybeSingle();
   if(error){
+    console.error(error);
     $("syncStatus").textContent = "⚠️ Lance le SQL Supabase d’abord";
     return;
   }
-  if(data) who = data.data;
+  if(data?.data){
+    who = data.data;
+  } else {
+    await saveWho();
+  }
   renderWho();
+}
+
+async function saveWho(){
+  const ok = await saveGame("who", who);
+  renderWho();
+  return ok;
 }
 
 function buildTiles(){
@@ -26,7 +37,7 @@ function buildTiles(){
     d.onclick = async () => {
       if(!admin) return;
       who.hidden[i] = !who.hidden[i];
-      await saveGame("who", who);
+      await saveWho();
     };
     t.appendChild(d);
   }
@@ -46,6 +57,10 @@ function renderWho(){
     $("whoImg").src = who.image;
     $("whoImg").style.display = "block";
     $("placeholder").style.display = "none";
+  } else {
+    $("whoImg").removeAttribute("src");
+    $("whoImg").style.display = "none";
+    $("placeholder").style.display = "block";
   }
   $("whoImg").style.filter = `blur(${who.blur ?? 18}px)`;
   buildTiles();
@@ -65,43 +80,46 @@ function bindWhoEvents(){
   $("whoGrid").onchange = async () => {
     who.grid = +$("whoGrid").value;
     who.hidden = Array(who.grid * who.grid).fill(false);
-    await saveGame("who", who);
+    await saveWho();
   };
   $("whoGoal").oninput = async () => {
     who.goal = +$("whoGoal").value;
-    await saveGame("who", who);
+    await saveWho();
   };
-  $("whoFile").onchange = e => {
+  $("whoFile").onchange = async e => {
     let f = e.target.files[0];
     if(!f) return;
-    let r = new FileReader();
-    r.onload = async ev => {
-      who.image = ev.target.result;
-      await saveGame("who", who);
-    };
-    r.readAsDataURL(f);
+    try {
+      $("syncStatus").textContent = "🔄 Compression de l’image...";
+      who.image = await fileToCompressedDataUrl(f);
+      who.hidden = Array((+who.grid || 10) * (+who.grid || 10)).fill(false);
+      await saveWho();
+    } catch(error) {
+      console.error(error);
+      alert(error.message || "Impossible de charger l’image.");
+    }
   };
   $("showClue").onclick = async () => {
     who.clue = "💡 Indice : " + ($("whoClueInput").value || "pas encore dévoilé");
-    await saveGame("who", who);
+    await saveWho();
   };
   $("toggleAnswer").onclick = () => $("answerBox").classList.toggle("visible");
   $("whoAnswer").oninput = async () => {
     who.answer = $("whoAnswer").value;
-    await saveGame("who", who);
+    await saveWho();
   };
   $("addSub").onclick = async () => {
     who.subs = (who.subs || 0) + 1;
     revealRandom();
     if(who.subs % 2 === 0) who.blur = Math.max(0, (who.blur ?? 18) - 1);
-    await saveGame("who", who);
+    await saveWho();
   };
   $("revealOne").onclick = async () => {
     revealRandom();
-    await saveGame("who", who);
+    await saveWho();
   };
   $("resetWho").onclick = async () => {
     who = {subs:0, goal:37, grid:10, blur:18, hidden:Array(100).fill(false), clue:"💡 Indice : pas encore dévoilé", answer:"", image:""};
-    await saveGame("who", who);
+    await saveWho();
   };
 }

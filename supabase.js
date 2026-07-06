@@ -32,5 +32,17 @@ async function initSupabase(){
 }
 
 async function saveGame(id, data){
-  await sb.from("game_state").upsert({id, data, updated_at: new Date().toISOString()});
+  if(!sb){
+    $("syncStatus").textContent = "⚠️ Connexion Supabase absente";
+    return false;
+  }
+  const {error} = await sb.from("game_state").upsert({id, data, updated_at: new Date().toISOString()});
+  if(error){
+    console.error(error);
+    $("syncStatus").textContent = "⚠️ Sauvegarde impossible";
+    alert("Sauvegarde impossible : " + error.message);
+    return false;
+  }
+  $("syncStatus").textContent = "✅ Synchronisé";
+  return true;
 }
