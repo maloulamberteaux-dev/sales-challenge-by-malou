@@ -1,17 +1,18 @@
-let admin = localStorage.getItem("malou_admin") === "1";
-let currentPlayer = "";
+let currentUser = null;   // objet user Supabase (session Google)
+let currentPlayer = "";   // nom d'affichage servant d'identité de jeu
+let admin = false;        // true si l'email est dans window.ADMIN_EMAILS
 
-function setAdmin(value){
-  admin = value;
-  if(value) localStorage.setItem("malou_admin", "1");
-  else localStorage.removeItem("malou_admin");
-}
-
-function savePlayer(player){
-  currentPlayer = player;
-  localStorage.setItem("player", player);
-}
-
-function getSavedPlayer(){
-  return localStorage.getItem("player") || "";
+// Met à jour l'état (user / joueur / admin) à partir d'une session Supabase.
+function applySession(session){
+  currentUser = session?.user || null;
+  if(currentUser){
+    const meta = currentUser.user_metadata || {};
+    currentPlayer = (meta.full_name || meta.name || currentUser.email || "").trim();
+    const email = (currentUser.email || "").toLowerCase();
+    const allow = (window.ADMIN_EMAILS || []).map(e => String(e).toLowerCase());
+    admin = allow.includes(email);
+  } else {
+    currentPlayer = "";
+    admin = false;
+  }
 }

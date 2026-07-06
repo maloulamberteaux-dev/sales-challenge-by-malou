@@ -12,47 +12,53 @@
     <header class="hero">
       <div class="top">
         <strong>💖 Sales Challenge by Malou</strong>
-        <div>
-          <button id="loginBtn" class="ghost">🔒 Connexion admin</button>
+        <div class="authArea">
+          <span id="userBox" class="userBox hidden">
+            <img id="userAvatar" alt=""/>
+            <span id="userName"></span>
+            <span id="adminBadge" class="badge hidden">👑 Admin</span>
+          </span>
+          <button id="loginBtn" class="ghost">🔓 Se connecter avec Google</button>
           <button id="logoutBtn" class="ghost hidden">Déconnexion</button>
         </div>
       </div>
       <h1>Sales Challenge</h1>
-      <p id="modeText">Vue joueur — tout se synchronise en direct.</p>
+      <p id="modeText">🎮 Prêt(e) à jouer ? Choisis ton défi et fais monter le score !</p>
       <span id="syncStatus">🔄 Connexion...</span>
     </header>
 
-    <nav class="tabs">
-      <button class="tab active" data-page="home">👥 Accueil</button>
-      <button class="tab" data-page="bingo">💜 Bingo</button>
+    <nav class="tabs hidden" id="tabs">
+      <button class="tab active" data-page="bingo">💜 Bingo</button>
       <button class="tab" data-page="who">🎭 Qui suis-je ?</button>
       <button class="tab adminOnly hidden" data-page="admin">👑 Dashboard admin</button>
     </nav>
 
-    <section id="home" class="card page">
-      <h2>Bienvenue 💅</h2>
-      <p>Entre ton prénom puis choisis ton jeu.</p>
-      <div class="start">
-        <input id="playerName" placeholder="Ton prénom ex : Camille"/>
-        <button id="startBingo">Ouvrir mon Bingo</button>
+    <section id="gate" class="card page">
+      <div class="gateBox">
+        <div class="gateEmoji">🎮</div>
+        <h2>Connecte-toi pour jouer</h2>
+        <p>Rejoins le Sales Challenge avec ton compte Google. Ton prénom et ta photo servent d'identité de jeu — pas de mot de passe à retenir 💫</p>
+        <button id="googleLogin" class="big google">
+          <span class="gIcon">G</span> Se connecter avec Google
+        </button>
+        <div class="gateNote">🔒 On utilise juste ton nom et ta photo Google. Rien d'autre.</div>
       </div>
-      <button class="big" onclick="showPage('who')">🎭 Voir le Qui suis-je ?</button>
     </section>
 
     <section id="bingo" class="card page hidden">
       <div class="header">
         <div>
           <h2>💜 Bingo Commercial</h2>
-          <p>Chaque joueur coche ses cases. Tout est sauvegardé dans Supabase.</p>
+          <p>Coche tes missions au fil de la journée. Une ligne complète et c'est BINGO 🎉</p>
         </div>
-        <button id="resetMyBingo" class="ghost">Reset mon bingo</button>
+        <button id="resetMyBingo" class="ghost">🔄 Nouvelle grille</button>
       </div>
       <div class="grid2">
         <aside class="panel">
-          <label>Prénom</label>
-          <input id="bingoPlayer" placeholder="Ex : Camille"/>
-          <button id="openBingo">Ouvrir mon Bingo</button>
-          <button id="copyLink" class="ghost">Copier mon lien joueur</button>
+          <div class="playerTag">
+            <span>Tu joues en tant que</span>
+            <strong id="playerTagName">...</strong>
+          </div>
 
           <div class="adminOnly hidden">
             <label>Taille du bingo</label>
@@ -69,9 +75,9 @@
           </div>
 
           <div class="rules">
-            ✅ Clique sur tes cases validées<br>
-            🎉 Ligne horizontale, verticale ou diagonale = Bingo<br>
-            📡 Synchro en direct avec Supabase
+            ✅ Clique sur chaque mission accomplie<br>
+            🎉 Ligne, colonne ou diagonale = BINGO !<br>
+            🏆 Sois le/la premier(e) à remplir une ligne
           </div>
         </aside>
 
@@ -79,7 +85,7 @@
           <h3>💜 Bingo de <span id="bingoName">...</span></h3>
           <small id="rewardTxt">50 € pour le premier Bingo</small>
           <div id="bingoBoard" class="bingoBoard"></div>
-          <div id="bingoMsg" class="msg">Entre ton prénom puis ouvre ton Bingo.</div>
+          <div id="bingoMsg" class="msg">🔥 Coche ta première mission pour lancer la partie !</div>
         </section>
       </div>
     </section>
@@ -88,7 +94,7 @@
       <div class="header">
         <div>
           <h2>🎭 Qui suis-je ?</h2>
-          <p>L’admin révèle, tous les joueurs voient la mise à jour en direct.</p>
+          <p>Chaque abo vendu dévoile un bout de la photo mystère. Sauras-tu deviner ? 🕵️</p>
         </div>
         <button id="resetWho" class="ghost adminOnly hidden">Reset Qui suis-je</button>
       </div>
@@ -120,8 +126,8 @@
           </div>
 
           <div class="rules">
-            👀 Vue joueur : suivi uniquement<br>
-            🔒 Vue admin : pilotage du jeu
+            👀 Ouvre l'œil : la photo se dévoile case par case<br>
+            🎯 Plus on vend, plus le mystère s'éclaircit
           </div>
 
           <h3><span id="subs">0</span>/<span id="goalText">37</span> abos</h3>
@@ -130,11 +136,11 @@
 
         <section class="stage">
           <div class="photo">
-            <div id="placeholder">📸 En attente du lancement admin</div>
+            <div id="placeholder">📸 La photo mystère arrive... prépare-toi !</div>
             <img id="whoImg"/>
             <div id="tiles"></div>
           </div>
-          <div id="whoMsg" class="msg">En attente du lancement.</div>
+          <div id="whoMsg" class="msg">🕵️ Le jeu va commencer, ouvre l'œil !</div>
           <div id="clue">💡 Indice : pas encore dévoilé</div>
         </section>
       </div>
@@ -146,15 +152,6 @@
       <div id="adminPlayers" class="players"></div>
     </section>
   </main>
-
-  <div id="modal" class="modal hidden">
-    <div class="modalCard">
-      <h2>🔒 Connexion admin</h2>
-      <input id="pwd" type="password" placeholder="Mot de passe admin"/>
-      <button id="okLogin">Connexion</button>
-      <button id="cancelLogin" class="ghost">Annuler</button>
-    </div>
-  </div>
 
   <script src="config.js"></script>
   <script src="utils.js"></script>
