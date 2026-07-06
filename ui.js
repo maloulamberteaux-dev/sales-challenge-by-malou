@@ -3,6 +3,7 @@ function showPage(p){
   const el = $(p);
   if(el) el.classList.remove("hidden");
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.page === p));
+  if(p === "admin"){ loadUsers(); loadPlayers(); }
 }
 window.showPage = showPage;
 
@@ -52,4 +53,13 @@ function bindUiEvents(){
   $("googleLogin").onclick = signInWithGoogle;
   $("logoutBtn").onclick = signOutUser;
   document.querySelectorAll(".tab").forEach(b => b.onclick = () => showPage(b.dataset.page));
+
+  // Sous-onglets du dashboard admin
+  document.querySelectorAll(".subtab").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".subtab").forEach(x => x.classList.toggle("active", x === b));
+    document.querySelectorAll(".subpage").forEach(p => p.classList.add("hidden"));
+    $(b.dataset.sub).classList.remove("hidden");
+    if(b.dataset.sub === "adminUsers") loadUsers();
+    else loadPlayers();
+  });
 }

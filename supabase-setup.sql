@@ -10,8 +10,27 @@ create table if not exists public.bingo_cards (
   updated_at timestamptz default now()
 );
 
+-- Profils des joueurs connectés via Google (onglet Utilisateurs du dashboard admin)
+create table if not exists public.players (
+  email text primary key,
+  name text,
+  avatar text,
+  is_admin boolean default false,
+  last_seen timestamptz default now()
+);
+
 alter table public.game_state enable row level security;
 alter table public.bingo_cards enable row level security;
+alter table public.players enable row level security;
+
+drop policy if exists "players_select_all" on public.players;
+drop policy if exists "players_insert_all" on public.players;
+drop policy if exists "players_update_all" on public.players;
+drop policy if exists "players_delete_all" on public.players;
+create policy "players_select_all" on public.players for select using (true);
+create policy "players_insert_all" on public.players for insert with check (true);
+create policy "players_update_all" on public.players for update using (true);
+create policy "players_delete_all" on public.players for delete using (true);
 
 drop policy if exists "game_state_select_all" on public.game_state;
 drop policy if exists "game_state_insert_all" on public.game_state;
