@@ -10,6 +10,22 @@ create table if not exists public.bingo_cards (
   updated_at timestamptz default now()
 );
 
+-- Victoires enregistrées (alimente l'onglet Classement) : 1 ligne par victoire et par manche
+create table if not exists public.results (
+  game text not null,
+  player text not null,
+  round text not null default '',
+  won_at timestamptz default now(),
+  primary key (game, player, round)
+);
+alter table public.results enable row level security;
+drop policy if exists "results_select_all" on public.results;
+drop policy if exists "results_insert_all" on public.results;
+drop policy if exists "results_delete_all" on public.results;
+create policy "results_select_all" on public.results for select using (true);
+create policy "results_insert_all" on public.results for insert with check (true);
+create policy "results_delete_all" on public.results for delete using (true);
+
 -- Profils des joueurs connectés via Google (onglet Utilisateurs du dashboard admin)
 create table if not exists public.players (
   email text primary key,

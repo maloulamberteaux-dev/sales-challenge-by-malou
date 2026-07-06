@@ -1,5 +1,30 @@
-let bingoSettings = {size:4, reward:"50 € pour le premier Bingo", tasks:["3 recos prises dans la journée", "2 abos dans une démo groupée", "Faire une blague dans un call", "6 abos dans la journée"]};
+let bingoSettings = {size:4, reward:"50 € pour le premier Bingo", tasks:["3 recos prises dans la journée", "2 abos dans une démo groupée", "Faire une blague dans un call", "6 abos dans la journée"], active:false};
 let hadBingo = false; // pour ne lancer les confettis qu'au moment du bingo
+
+function bingoActive(){ return !!bingoSettings.active; }
+
+// Affiche soit la grille (partie en cours), soit l'écran d'attente
+function renderBingoAvailability(){
+  const active = bingoActive();
+  const wait = $("bingoWait");
+  if(!wait) return;
+  wait.classList.toggle("hidden", active);
+  $("bingoPlay").classList.toggle("hidden", !active);
+  $("resetMyBingo").classList.toggle("hidden", !active);
+  $("bingoWaitTxt").textContent = admin
+    ? "Règle la taille, le gain et les missions dans le panneau, puis lance la partie 🚀"
+    : "L'admin prépare la prochaine partie... reste connecté(e) 🔥";
+  $("launchBingo").classList.toggle("hidden", active);
+  $("endBingo").classList.toggle("hidden", !active);
+  $("bingoLiveChip").textContent = active ? "🟢 Partie en cours" : "💤 Aucune partie";
+  if(!active){
+    $("statDone").textContent = "0";
+    $("statLeft").textContent = "0";
+    $("statRank").textContent = "🐣";
+    $("statRankLabel").textContent = "Rookie";
+    $("bingoBar").style.width = "0%";
+  }
+}
 
 async function loadBingoSettings(){
   let {data, error} = await sb.from("game_state").select("data").eq("id", "bingo_settings").single();
@@ -13,6 +38,7 @@ function renderBingoSettings(){
   $("bingoReward").value = bingoSettings.reward || "50 € pour le premier Bingo";
   $("bingoTasks").value = (bingoSettings.tasks || []).join("\n");
   $("rewardTxt").textContent = "🏆 " + (bingoSettings.reward || "50 € pour le premier Bingo");
+  renderBingoAvailability();
 }
 
 async function loadBingo(player){
@@ -20,9 +46,11 @@ async function loadBingo(player){
   if(data) renderBingo(data.data);
 }
 
+// Rejoint la partie en cours : récupère sa grille, ou en crée une
 async function openBingo(){
+  renderBingoAvailability();
   let p = currentPlayer;
-  if(!p) return;
+  if(!p || !bingoActive()) return;
   $("bingoName").textContent = p;
 
   let {data} = await sb.from("bingo_cards").select("data").eq("player", p).maybeSingle();
@@ -100,7 +128,10 @@ function checkBingo(n){
     if(l.every(i => c[i]?.classList.contains("checked"))){
       l.forEach(i => c[i].classList.add("win"));
       $("bingoMsg").textContent = "🎉 BINGOOOOOO !!!";
-      if(!hadBingo) confetti();
+      if(!hadBingo){
+        confetti();
+        recordBingoWin(); // victoire comptabilisée au classement
+      }
       hadBingo = true;
       return;
     }
@@ -111,6 +142,13 @@ function checkBingo(n){
   if(done === 0) $("bingoMsg").textContent = "🔥 Coche ta première mission pour lancer la partie !";
   else if(done / total < .5) $("bingoMsg").textContent = "💪 C'est parti, continue comme ça !";
   else $("bingoMsg").textContent = "⚡ Ça chauffe, le Bingo se rapproche !";
+}
+
+// Enregistre la victoire de la manche en cours (1 seule fois par joueur et par manche)
+async function recordBingoWin(){
+  if(!sb || !currentPlayer) return;
+  const round = bingoSettings.startedAt || "";
+  await sb.from("results").upsert({game:"bingo", player:currentPlayer, round}, {ignoreDuplicates:true});
 }
 
 // --- Listes admin ---
@@ -160,16 +198,45 @@ async function loadUsers(){
 }
 
 function bindBingoEvents(){
+  // Sauvegarde les réglages sans toucher à l'état de la partie
   $("saveBingoSettings").onclick = async () => {
     bingoSettings = {
+      ...bingoSettings,
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
       tasks:$("bingoTasks").value.split("\n").map(x => x.trim()).filter(Boolean)
     };
     await saveGame("bingo_settings", bingoSettings);
+    renderBingoSettings();
   };
+
+  // Lance une nouvelle partie : grilles fraîches pour tout le monde
+  $("launchBingo").onclick = async () => {
+    if(!confirm("Lancer une nouvelle partie ? Les grilles de tout le monde seront réinitialisées.")) return;
+    bingoSettings = {
+      size:+$("bingoSize").value,
+      reward:$("bingoReward").value,
+      tasks:$("bingoTasks").value.split("\n").map(x => x.trim()).filter(Boolean),
+      active:true,
+      startedAt:new Date().toISOString()
+    };
+    await sb.from("bingo_cards").delete().neq("player", "");
+    await saveGame("bingo_settings", bingoSettings);
+    renderBingoSettings();
+    if(currentPlayer) await openBingo();
+    loadPlayers();
+  };
+
+  // Termine la partie en cours (les grilles restent visibles dans le dashboard)
+  $("endBingo").onclick = async () => {
+    if(!confirm("Terminer la partie en cours ?")) return;
+    bingoSettings.active = false;
+    await saveGame("bingo_settings", bingoSettings);
+    renderBingoAvailability();
+  };
+
   $("resetMyBingo").onclick = async () => {
-    if(!currentPlayer) return;
+    if(!currentPlayer || !bingoActive()) return;
     await sb.from("bingo_cards").delete().eq("player", currentPlayer);
     await openBingo();
   };

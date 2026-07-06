@@ -32,78 +32,57 @@
     </header>
 
     <nav class="tabs hidden" id="tabs">
-      <button class="tab active" data-page="bingo">💜 Bingo</button>
-      <button class="tab" data-page="who">🎭 Qui suis-je ?</button>
+      <button class="tab active" data-page="who">🎭 Qui suis-je ?</button>
+      <button class="tab" data-page="bingo">💜 Bingo</button>
+      <button class="tab" data-page="board">🏆 Classement</button>
       <button class="tab adminOnly hidden" data-page="admin">👑 Dashboard admin</button>
     </nav>
 
     <section id="gate" class="card page">
-      <div class="gateBox">
-        <div class="gateEmoji">🎮</div>
-        <h2>Connecte-toi pour jouer</h2>
-        <p>Rejoins le Sales Challenge avec ton compte Google. Ton prénom et ta photo servent d'identité de jeu — pas de mot de passe à retenir 💫</p>
-        <div class="gameChips">
-          <span class="chip">💜 Bingo Commercial</span>
-          <span class="chip">🎭 Qui suis-je ?</span>
+      <div class="landing">
+        <div class="floaters" aria-hidden="true">
+          <span style="--d:0s;--x:4%;--y:10%">💜</span>
+          <span style="--d:1.2s;--x:90%;--y:14%">🎉</span>
+          <span style="--d:.6s;--x:8%;--y:72%">💸</span>
+          <span style="--d:1.8s;--x:86%;--y:68%">🚀</span>
+          <span style="--d:2.4s;--x:46%;--y:4%">⭐</span>
+          <span style="--d:.9s;--x:72%;--y:40%">🔥</span>
         </div>
-        <button id="googleLogin" class="big google">
-          <span class="gIcon">G</span> Se connecter avec Google
-        </button>
-        <div class="gateNote">🔒 On utilise juste ton nom et ta photo Google. Rien d'autre.</div>
-      </div>
-    </section>
+        <div class="gateBox wide">
+          <h2 class="landTitle">Le challenge qui met le feu<br><span class="tGrad">à tes ventes</span> 🔥</h2>
+          <p class="landSub">Transforme ta journée de vente en compétition d'équipe : coche tes missions, dévoile la photo mystère et grimpe au classement. Que le/la meilleur(e) gagne 🏆</p>
 
-    <section id="bingo" class="card page hidden">
-      <div class="header">
-        <div>
-          <h2>💜 Bingo Commercial</h2>
-          <p>Coche tes missions au fil de la journée. Une ligne complète et c'est BINGO 🎉</p>
+          <div class="ctaWrap">
+            <button id="googleLogin" class="big google">
+              <span class="gIcon">G</span> Se connecter avec Google
+            </button>
+            <div class="gateNote">🔒 On utilise juste ton nom et ta photo Google. Rien d'autre.</div>
+          </div>
+
+          <div class="gameCards">
+            <div class="gameCard">
+              <div class="gcEmoji">🎭</div>
+              <h3>Qui suis-je ?</h3>
+              <p>Chaque abo vendu dévoile un bout de la photo mystère. Devine avant les autres !</p>
+            </div>
+            <div class="gameCard">
+              <div class="gcEmoji">💜</div>
+              <h3>Bingo Commercial</h3>
+              <p>Une grille de missions terrain. Une ligne complète = BINGO, et le gain est pour toi.</p>
+            </div>
+            <div class="gameCard">
+              <div class="gcEmoji">🏆</div>
+              <h3>Classement</h3>
+              <p>Chaque victoire compte. Enchaîne les wins et deviens la légende de l'équipe.</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step"><span>1</span> Connecte-toi avec Google</div>
+            <div class="step"><span>2</span> Rejoins la partie en cours</div>
+            <div class="step"><span>3</span> Vends, coche, gagne 💰</div>
+          </div>
         </div>
-        <button id="resetMyBingo" class="ghost small">🔄 Nouvelle grille</button>
-      </div>
-      <div class="grid2">
-        <aside class="panel">
-          <div class="playerTag">
-            <span>Tu joues en tant que</span>
-            <strong id="playerTagName">...</strong>
-          </div>
-
-          <div class="statRow">
-            <div class="stat"><span id="statDone">0</span><label>faites ✅</label></div>
-            <div class="stat"><span id="statLeft">0</span><label>restantes</label></div>
-            <div class="stat"><span id="statRank">🐣</span><label id="statRankLabel">Rookie</label></div>
-          </div>
-          <div class="bar mini"><div id="bingoBar"></div></div>
-
-          <div class="adminOnly hidden">
-            <label>Taille du bingo</label>
-            <select id="bingoSize">
-              <option value="3">3×3</option>
-              <option value="4" selected>4×4</option>
-              <option value="5">5×5</option>
-            </select>
-            <label>Gain</label>
-            <input id="bingoReward" value="50 € pour le premier Bingo"/>
-            <label>Missions</label>
-            <textarea id="bingoTasks"></textarea>
-            <button id="saveBingoSettings">Sauvegarder les réglages Bingo</button>
-          </div>
-
-          <div class="rules">
-            ✅ Clique sur chaque mission accomplie<br>
-            🎉 Ligne, colonne ou diagonale = BINGO !<br>
-            🏆 Sois le/la premier(e) à remplir une ligne
-          </div>
-        </aside>
-
-        <section class="stage">
-          <div class="stageHead">
-            <h3>💜 Bingo de <span id="bingoName">...</span></h3>
-            <span class="chip" id="rewardTxt">🏆 50 € pour le premier Bingo</span>
-          </div>
-          <div id="bingoBoard" class="bingoBoard"></div>
-          <div id="bingoMsg" class="msg">🔥 Coche ta première mission pour lancer la partie !</div>
-        </section>
       </div>
     </section>
 
@@ -119,6 +98,10 @@
       <div class="grid2">
         <aside class="panel">
           <div class="adminOnly hidden">
+            <div class="liveRow">
+              <span id="whoLiveChip" class="chip">⚙️ En préparation</span>
+              <button id="toggleLive">🚀 Lancer la partie</button>
+            </div>
             <label>Objectif abonnements</label>
             <input id="whoGoal" type="number" value="37"/>
             <label>Nombre de cases</label>
@@ -140,6 +123,9 @@
             <button id="showClue">Afficher indice</button>
             <button id="addSub">+1 abo = dévoiler 1 case</button>
             <button id="revealOne" class="ghost">Dévoiler sans +1</button>
+            <label>Fin de partie</label>
+            <button id="pickWinnerBtn" class="ghost">🏆 Désigner le vainqueur</button>
+            <div id="winnerPick" class="winnerPick hidden"></div>
           </div>
 
           <div class="statRow">
@@ -164,6 +150,91 @@
           <div id="whoMsg" class="msg">🕵️ Le jeu va commencer, ouvre l'œil !</div>
           <div id="clue">💡 Indice : pas encore dévoilé</div>
         </section>
+      </div>
+    </section>
+
+    <section id="bingo" class="card page hidden">
+      <div class="header">
+        <div>
+          <h2>💜 Bingo Commercial</h2>
+          <p>Coche tes missions au fil de la journée. Une ligne complète et c'est BINGO 🎉</p>
+        </div>
+        <button id="resetMyBingo" class="ghost small hidden">🔄 Nouvelle grille</button>
+      </div>
+      <div class="grid2">
+        <aside class="panel">
+          <div class="playerTag">
+            <span>Tu joues en tant que</span>
+            <strong id="playerTagName">...</strong>
+          </div>
+
+          <div class="statRow">
+            <div class="stat"><span id="statDone">0</span><label>faites ✅</label></div>
+            <div class="stat"><span id="statLeft">0</span><label>restantes</label></div>
+            <div class="stat"><span id="statRank">🐣</span><label id="statRankLabel">Rookie</label></div>
+          </div>
+          <div class="bar mini"><div id="bingoBar"></div></div>
+
+          <div class="adminOnly hidden">
+            <div class="liveRow">
+              <span id="bingoLiveChip" class="chip">💤 Aucune partie</span>
+            </div>
+            <label>Taille du bingo</label>
+            <select id="bingoSize">
+              <option value="3">3×3</option>
+              <option value="4" selected>4×4</option>
+              <option value="5">5×5</option>
+            </select>
+            <label>Gain</label>
+            <input id="bingoReward" value="50 € pour le premier Bingo"/>
+            <label>Missions</label>
+            <textarea id="bingoTasks"></textarea>
+            <button id="saveBingoSettings" class="ghost">💾 Sauvegarder les réglages</button>
+            <button id="launchBingo">🚀 Lancer une nouvelle partie</button>
+            <button id="endBingo" class="ghost hidden">🛑 Terminer la partie</button>
+          </div>
+
+          <div class="rules">
+            ✅ Clique sur chaque mission accomplie<br>
+            🎉 Ligne, colonne ou diagonale = BINGO !<br>
+            🏆 Sois le/la premier(e) à remplir une ligne
+          </div>
+        </aside>
+
+        <section class="stage">
+          <div id="bingoWait" class="waitBox hidden">
+            <div class="gateEmoji">🎲</div>
+            <h3>Aucune partie en cours</h3>
+            <p id="bingoWaitTxt">L'admin prépare la prochaine partie... reste connecté(e) 🔥</p>
+          </div>
+          <div id="bingoPlay" class="hidden">
+            <div class="stageHead">
+              <h3>💜 Bingo de <span id="bingoName">...</span></h3>
+              <span class="chip" id="rewardTxt">🏆 50 € pour le premier Bingo</span>
+            </div>
+            <div id="bingoBoard" class="bingoBoard"></div>
+            <div id="bingoMsg" class="msg">🔥 Coche ta première mission pour lancer la partie !</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="board" class="card page hidden">
+      <div class="header">
+        <div>
+          <h2>🏆 Classement</h2>
+          <p>Les vainqueurs de chaque jeu — la gloire éternelle 💫</p>
+        </div>
+      </div>
+      <div class="grid2 even">
+        <div class="boardCol">
+          <h3>🎭 Qui suis-je ?</h3>
+          <div id="boardWho" class="boardList"></div>
+        </div>
+        <div class="boardCol">
+          <h3>💜 Bingo</h3>
+          <div id="boardBingo" class="boardList"></div>
+        </div>
       </div>
     </section>
 
@@ -194,6 +265,7 @@
   <script src="supabase.js"></script>
   <script src="who.js"></script>
   <script src="bingo.js"></script>
+  <script src="board.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

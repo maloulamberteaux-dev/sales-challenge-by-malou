@@ -27,11 +27,16 @@ async function initSupabase(){
     if(payload.new.id === "bingo_settings"){
       bingoSettings = payload.new.data;
       renderBingoSettings();
-      if(currentPlayer) loadBingo(currentPlayer);
+      // Partie lancée → chaque joueur connecté la rejoint (grille créée si besoin)
+      if(currentPlayer && bingoActive()) openBingo();
     }
   }).subscribe();
 
   sb.channel("bingo_cards_changes").on("postgres_changes", {event:"*", schema:"public", table:"bingo_cards"}, payload => {
+    // Ma grille supprimée (nouvelle partie) → j'en récupère une fraîche
+    if(payload.eventType === "DELETE" && payload.old?.player === currentPlayer && bingoActive()){
+      openBingo();
+    }
     if(payload.new?.player === currentPlayer) renderBingo(payload.new.data);
     loadPlayers();
   }).subscribe();
