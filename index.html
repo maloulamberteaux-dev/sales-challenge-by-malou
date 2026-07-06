@@ -1,9 +1,162 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Sales Challenge by Malou</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
-<main class="app">
-<header class="hero"><div class="top"><strong>💖 Sales Challenge by Malou</strong><div><button id="loginBtn" class="ghost">🔒 Connexion admin</button><button id="logoutBtn" class="ghost hidden">Déconnexion</button></div></div><h1>Sales Challenge</h1><p id="modeText">Vue joueur — tout se synchronise en direct.</p><span id="syncStatus">🔄 Connexion...</span></header>
-<nav class="tabs"><button class="tab active" data-page="home">👥 Accueil</button><button class="tab" data-page="bingo">💜 Bingo</button><button class="tab" data-page="who">🎭 Qui suis-je ?</button><button class="tab adminOnly hidden" data-page="admin">👑 Dashboard admin</button></nav>
-<section id="home" class="card page"><h2>Bienvenue 💅</h2><p>Entre ton prénom puis choisis ton jeu.</p><div class="start"><input id="playerName" placeholder="Ton prénom ex : Camille"><button id="startBingo">Ouvrir mon Bingo</button></div><button class="big" onclick="showPage('who')">🎭 Voir le Qui suis-je ?</button></section>
-<section id="bingo" class="card page hidden"><div class="header"><div><h2>💜 Bingo Commercial</h2><p>Chaque joueur coche ses cases. Tout est sauvegardé dans Supabase.</p></div><button id="resetMyBingo" class="ghost">Reset mon bingo</button></div><div class="grid2"><aside class="panel"><label>Prénom</label><input id="bingoPlayer" placeholder="Ex : Camille"><button id="openBingo">Ouvrir mon Bingo</button><button id="copyLink" class="ghost">Copier mon lien joueur</button><div class="adminOnly hidden"><label>Taille du bingo</label><select id="bingoSize"><option value="3">3×3</option><option value="4" selected>4×4</option><option value="5">5×5</option></select><label>Gain</label><input id="bingoReward" value="50 € pour le premier Bingo"><label>Missions</label><textarea id="bingoTasks"></textarea><button id="saveBingoSettings">Sauvegarder les réglages Bingo</button></div><div class="rules">✅ Clique sur tes cases validées<br>🎉 Ligne horizontale, verticale ou diagonale = Bingo<br>📡 Synchro en direct avec Supabase</div></aside><section class="stage"><h3>💜 Bingo de <span id="bingoName">...</span></h3><small id="rewardTxt">50 € pour le premier Bingo</small><div id="bingoBoard" class="bingoBoard"></div><div id="bingoMsg" class="msg">Entre ton prénom puis ouvre ton Bingo.</div></section></div></section>
-<section id="who" class="card page hidden"><div class="header"><div><h2>🎭 Qui suis-je ?</h2><p>L’admin révèle, tous les joueurs voient la mise à jour en direct.</p></div><button id="resetWho" class="ghost adminOnly hidden">Reset Qui suis-je</button></div><div class="grid2"><aside class="panel"><div class="adminOnly hidden"><label>Objectif abonnements</label><input id="whoGoal" type="number" value="37"><label>Nombre de cases</label><select id="whoGrid"><option value="5">25</option><option value="8">64</option><option value="10" selected>100</option><option value="12">144</option><option value="15">225</option></select><label>Photo mystère</label><input id="whoFile" type="file" accept="image/*"><label>Réponse secrète</label><input id="whoAnswer" placeholder="Ex : Rihanna"><button id="toggleAnswer" class="ghost">Afficher / masquer réponse</button><div id="answerBox" class="secret">Réponse masquée</div><label>Indice</label><input id="whoClueInput" placeholder="Ex : je suis française"><button id="showClue">Afficher indice</button><button id="addSub">+1 abo = dévoiler 1 case</button><button id="revealOne" class="ghost">Dévoiler sans +1</button></div><div class="rules">👀 Vue joueur : suivi uniquement<br>🔒 Vue admin : pilotage du jeu</div><h3><span id="subs">0</span>/<span id="goalText">37</span> abos</h3><div class="bar"><div id="bar"></div></div></aside><section class="stage"><div class="photo"><div id="placeholder">📸 En attente du lancement admin</div><img id="whoImg"><div id="tiles"></div></div><div id="whoMsg" class="msg">En attente du lancement.</div><div id="clue">💡 Indice : pas encore dévoilé</div></section></div></section>
-<section id="admin" class="card page hidden"><h2>👑 Dashboard admin</h2><p>Vue rapide des joueurs Bingo.</p><div id="adminPlayers" class="players"></div></section>
-</main><div id="modal" class="modal hidden"><div class="modalCard"><h2>🔒 Connexion admin</h2><input id="pwd" type="password" placeholder="Mot de passe"><button id="okLogin">Connexion</button><button id="cancelLogin" class="ghost">Annuler</button><small>Mot de passe par défaut : <b>malou</b> dans app.js</small></div></div><script src="config.js"></script><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales Challenge by Malou</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="top">
+        <strong>💖 Sales Challenge by Malou</strong>
+        <div>
+          <button id="loginBtn" class="ghost">🔒 Connexion admin</button>
+          <button id="logoutBtn" class="ghost hidden">Déconnexion</button>
+        </div>
+      </div>
+      <h1>Sales Challenge</h1>
+      <p id="modeText">Vue joueur — tout se synchronise en direct.</p>
+      <span id="syncStatus">🔄 Connexion...</span>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-page="home">👥 Accueil</button>
+      <button class="tab" data-page="bingo">💜 Bingo</button>
+      <button class="tab" data-page="who">🎭 Qui suis-je ?</button>
+      <button class="tab adminOnly hidden" data-page="admin">👑 Dashboard admin</button>
+    </nav>
+
+    <section id="home" class="card page">
+      <h2>Bienvenue 💅</h2>
+      <p>Entre ton prénom puis choisis ton jeu.</p>
+      <div class="start">
+        <input id="playerName" placeholder="Ton prénom ex : Camille"/>
+        <button id="startBingo">Ouvrir mon Bingo</button>
+      </div>
+      <button class="big" onclick="showPage('who')">🎭 Voir le Qui suis-je ?</button>
+    </section>
+
+    <section id="bingo" class="card page hidden">
+      <div class="header">
+        <div>
+          <h2>💜 Bingo Commercial</h2>
+          <p>Chaque joueur coche ses cases. Tout est sauvegardé dans Supabase.</p>
+        </div>
+        <button id="resetMyBingo" class="ghost">Reset mon bingo</button>
+      </div>
+      <div class="grid2">
+        <aside class="panel">
+          <label>Prénom</label>
+          <input id="bingoPlayer" placeholder="Ex : Camille"/>
+          <button id="openBingo">Ouvrir mon Bingo</button>
+          <button id="copyLink" class="ghost">Copier mon lien joueur</button>
+
+          <div class="adminOnly hidden">
+            <label>Taille du bingo</label>
+            <select id="bingoSize">
+              <option value="3">3×3</option>
+              <option value="4" selected>4×4</option>
+              <option value="5">5×5</option>
+            </select>
+            <label>Gain</label>
+            <input id="bingoReward" value="50 € pour le premier Bingo"/>
+            <label>Missions</label>
+            <textarea id="bingoTasks"></textarea>
+            <button id="saveBingoSettings">Sauvegarder les réglages Bingo</button>
+          </div>
+
+          <div class="rules">
+            ✅ Clique sur tes cases validées<br>
+            🎉 Ligne horizontale, verticale ou diagonale = Bingo<br>
+            📡 Synchro en direct avec Supabase
+          </div>
+        </aside>
+
+        <section class="stage">
+          <h3>💜 Bingo de <span id="bingoName">...</span></h3>
+          <small id="rewardTxt">50 € pour le premier Bingo</small>
+          <div id="bingoBoard" class="bingoBoard"></div>
+          <div id="bingoMsg" class="msg">Entre ton prénom puis ouvre ton Bingo.</div>
+        </section>
+      </div>
+    </section>
+
+    <section id="who" class="card page hidden">
+      <div class="header">
+        <div>
+          <h2>🎭 Qui suis-je ?</h2>
+          <p>L’admin révèle, tous les joueurs voient la mise à jour en direct.</p>
+        </div>
+        <button id="resetWho" class="ghost adminOnly hidden">Reset Qui suis-je</button>
+      </div>
+
+      <div class="grid2">
+        <aside class="panel">
+          <div class="adminOnly hidden">
+            <label>Objectif abonnements</label>
+            <input id="whoGoal" type="number" value="37"/>
+            <label>Nombre de cases</label>
+            <select id="whoGrid">
+              <option value="5">25</option>
+              <option value="8">64</option>
+              <option value="10" selected>100</option>
+              <option value="12">144</option>
+              <option value="15">225</option>
+            </select>
+            <label>Photo mystère</label>
+            <input id="whoFile" type="file" accept="image/*"/>
+            <label>Réponse secrète</label>
+            <input id="whoAnswer" placeholder="Ex : Rihanna"/>
+            <button id="toggleAnswer" class="ghost">Afficher / masquer réponse</button>
+            <div id="answerBox" class="secret">Réponse masquée</div>
+            <label>Indice</label>
+            <input id="whoClueInput" placeholder="Ex : je suis française"/>
+            <button id="showClue">Afficher indice</button>
+            <button id="addSub">+1 abo = dévoiler 1 case</button>
+            <button id="revealOne" class="ghost">Dévoiler sans +1</button>
+          </div>
+
+          <div class="rules">
+            👀 Vue joueur : suivi uniquement<br>
+            🔒 Vue admin : pilotage du jeu
+          </div>
+
+          <h3><span id="subs">0</span>/<span id="goalText">37</span> abos</h3>
+          <div class="bar"><div id="bar"></div></div>
+        </aside>
+
+        <section class="stage">
+          <div class="photo">
+            <div id="placeholder">📸 En attente du lancement admin</div>
+            <img id="whoImg"/>
+            <div id="tiles"></div>
+          </div>
+          <div id="whoMsg" class="msg">En attente du lancement.</div>
+          <div id="clue">💡 Indice : pas encore dévoilé</div>
+        </section>
+      </div>
+    </section>
+
+    <section id="admin" class="card page hidden">
+      <h2>👑 Dashboard admin</h2>
+      <p>Vue rapide des joueurs Bingo.</p>
+      <div id="adminPlayers" class="players"></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden">
+    <div class="modalCard">
+      <h2>🔒 Connexion admin</h2>
+      <input id="pwd" type="password" placeholder="Mot de passe admin"/>
+      <button id="okLogin">Connexion</button>
+      <button id="cancelLogin" class="ghost">Annuler</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
