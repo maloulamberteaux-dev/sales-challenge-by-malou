@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Challenge by Malou</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div class="badge">💖 Made with love by Malou</div>
+      <h1>Sales Challenge</h1>
+      <p>Animations commerciales interactives : abos, jeux, bingo et récompenses.</p>
+    </section>
+
+    <section class="tabs">
+      <button class="tab active" data-game="who">🎭 Qui suis-je ?</button>
+      <button class="tab" data-game="ship">🚢 Touché Coulé</button>
+      <button class="tab" data-game="bingo">💜 Bingo</button>
+      <button class="tab soon" disabled>🔍 Logo bientôt</button>
+      <button class="tab soon" disabled>📸 Zoom bientôt</button>
+    </section>
+
+    <section id="whoGame" class="game-card">
+      <div class="game-header">
+        <div><h2>🎭 Qui suis-je ?</h2><p>1 abonnement = 1 case dévoilée au hasard.</p></div>
+        <button id="whoReset" class="ghost">Réinitialiser</button>
+      </div>
+      <div class="layout">
+        <aside class="panel">
+          <label>Objectif abonnements</label><input id="whoGoal" type="number" min="1" value="37" />
+          <label>Nombre de cases</label>
+          <select id="whoGrid"><option value="5">25</option><option value="6">36</option><option value="8">64</option><option value="10" selected>100</option><option value="12">144</option><option value="15">225</option></select>
+          <label>Photo mystère</label><input id="whoFile" type="file" accept="image/*" />
+          <label>Réponse secrète</label><input id="whoAnswer" placeholder="Ex : Squeezie, Rihanna..." />
+          <button id="toggleAnswer" class="ghost">Afficher / masquer la réponse</button>
+          <div id="secretAnswer" class="secret">Réponse masquée</div>
+          <label>Indice</label><input id="clueInput" placeholder="Ex : Je suis français..." />
+          <button id="showClue" class="ghost">Afficher l’indice</button>
+          <div class="score">💅 <span id="whoSubs">0</span>/<span id="whoGoalTxt">37</span> abos</div>
+          <div class="bar"><div id="whoFill"></div></div>
+          <button id="whoAdd">+1 abonnement = dévoiler 1 case</button>
+          <button id="whoReveal" class="ghost">Dévoiler une case sans +1</button>
+          <button id="lessBlur" class="ghost">✨ Moins flou</button>
+        </aside>
+        <section class="stage">
+          <div class="photo-box"><div id="whoPlaceholder" class="placeholder">📸 Ajoute une photo mystère<br><small>Le jeu la floute et la cache automatiquement</small></div><img id="whoImage" alt="" /><div id="whoTiles" class="tiles"></div></div>
+          <div id="whoMessage" class="message">Prête à lancer le challenge 😈</div>
+          <div id="whoClue" class="clue">💡 Indice : pas encore dévoilé</div>
+        </section>
+      </div>
+    </section>
+
+    <section id="shipGame" class="game-card hidden">
+      <div class="game-header">
+        <div><h2>🚢 Touché Coulé</h2><p>Tu places les bateaux en secret. 1 bateau coulé = 10 €.</p></div>
+        <button id="shipReset" class="ghost">Réinitialiser</button>
+      </div>
+      <div class="layout">
+        <aside class="panel">
+          <label>Taille du plateau</label>
+          <select id="shipSize"><option value="8">8 × 8</option><option value="10" selected>10 × 10</option><option value="12">12 × 12</option></select>
+          <div class="rules-box">🎯 <b>1 abonnement = 1 case dévoilée</b><br>🚢 <b>1 bateau coulé = 10 €</b><br>💸 Gain total affiché automatiquement</div>
+          <button id="shipStart">🎮 Commencer la partie</button>
+          <button id="shipMode" class="ghost">Mode placement secret</button>
+          <div class="score">🚢 <span id="shipSunk">0</span> bateaux coulés</div>
+          <div class="score">💸 <span id="shipMoney">0</span> € gagnés</div>
+        </aside>
+        <section class="stage"><div id="shipBoard" class="ship-board"></div><div id="shipMessage" class="message">Place tes bateaux en secret 👀</div></section>
+      </div>
+    </section>
+
+    <section id="bingoGame" class="game-card hidden">
+      <div class="game-header">
+        <div><h2>💜 Bingo Commercial</h2><p>Chaque personne choisit son prénom et coche ses cases validées. Bingo = ligne complète.</p></div>
+        <button id="bingoReset" class="ghost">Réinitialiser le joueur</button>
+      </div>
+
+      <div class="layout">
+        <aside class="panel">
+          <label>Joueur / prénom</label>
+          <input id="bingoPlayer" placeholder="Ex : Camille" />
+
+          <label>Taille du bingo</label>
+          <select id="bingoSize">
+            <option value="3">3 × 3 rapide</option>
+            <option value="4" selected>4 × 4 parfait</option>
+            <option value="5">5 × 5 long</option>
+          </select>
+
+          <label>Gain</label>
+          <input id="bingoReward" value="50 € pour le premier Bingo" />
+
+          <button id="bingoGenerate">🎲 Générer mon Bingo</button>
+          <button id="bingoShuffle" class="ghost">Mélanger les cases</button>
+          <button id="bingoCopy" class="ghost">Copier le lien du joueur</button>
+
+          <div class="rules-box">
+            ✅ Chaque joueur coche ses cases validées<br>
+            ➡️ Ligne horizontale, verticale ou diagonale = BINGO<br>
+            💾 Sauvegarde automatique par prénom
+          </div>
+
+          <label>Missions disponibles</label>
+          <textarea id="bingoTasks"></textarea>
+        </aside>
+
+        <section class="stage">
+          <div class="bingo-title">
+            <div>💜 Bingo de <span id="bingoName">...</span></div>
+            <small id="bingoRewardText">50 € pour le premier Bingo</small>
+          </div>
+          <div id="bingoBoard" class="bingo-board"></div>
+          <div id="bingoMessage" class="message">Entre un prénom puis génère le Bingo 💅</div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
