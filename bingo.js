@@ -20,12 +20,8 @@ async function loadBingo(player){
 }
 
 async function openBingo(){
-  let p = $("bingoPlayer").value.trim();
-  if(!p){
-    alert("Mets ton prénom bb");
-    return;
-  }
-  savePlayer(p);
+  let p = currentPlayer;
+  if(!p) return;
   $("bingoName").textContent = p;
 
   let {data} = await sb.from("bingo_cards").select("data").eq("player", p).maybeSingle();
@@ -84,7 +80,7 @@ function checkBingo(n){
       return;
     }
   }
-  $("bingoMsg").textContent = "Clique sur tes cases validées ✅";
+  $("bingoMsg").textContent = "🔥 Continue, chaque mission te rapproche du Bingo !";
 }
 
 async function loadPlayers(){
@@ -106,22 +102,9 @@ function bindBingoEvents(){
     };
     await saveGame("bingo_settings", bingoSettings);
   };
-  $("openBingo").onclick = openBingo;
-  $("startBingo").onclick = () => {
-    $("bingoPlayer").value = $("playerName").value;
-    showPage("bingo");
-    openBingo();
-  };
   $("resetMyBingo").onclick = async () => {
     if(!currentPlayer) return;
     await sb.from("bingo_cards").delete().eq("player", currentPlayer);
     await openBingo();
-  };
-  $("copyLink").onclick = async () => {
-    let u = new URL(location.href);
-    u.searchParams.set("player", $("bingoPlayer").value || "joueur");
-    u.searchParams.set("game", "bingo");
-    await navigator.clipboard.writeText(u);
-    $("bingoMsg").textContent = "Lien copié 💜";
   };
 }

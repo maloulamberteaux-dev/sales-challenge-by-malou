@@ -1,4 +1,3 @@
-const ADMIN_PASSWORD = "malou";
 const $ = id => document.getElementById(id);
 
 function shuffle(a){
