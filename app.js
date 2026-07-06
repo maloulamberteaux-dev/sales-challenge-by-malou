@@ -1,53 +1,22 @@
-const ADMIN_PASSWORD="malou";
-const $=id=>document.getElementById(id);
-let admin=localStorage.getItem("malou_admin")==="1";
-let sb=null, who={subs:0,goal:37,grid:10,blur:18,hidden:[],clue:"💡 Indice : pas encore dévoilé",answer:"",image:""};
-let bingoSettings={size:4,reward:"50 € pour le premier Bingo",tasks:["3 recos prises dans la journée","2 abos dans une démo groupée","Faire une blague dans un call","6 abos dans la journée"]};
-let currentPlayer="";
+async function init(){
+  bindUiEvents();
+  bindWhoEvents();
+  bindBingoEvents();
+  mode();
 
-function showPage(p){document.querySelectorAll(".page").forEach(e=>e.classList.add("hidden"));$(p).classList.remove("hidden");document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.page===p))}
-window.showPage=showPage;
+  let params = new URLSearchParams(location.search);
+  let p = params.get("player") || getSavedPlayer() || "";
+  $("playerName").value = p;
+  $("bingoPlayer").value = p;
 
-function mode(){document.querySelectorAll(".adminOnly").forEach(e=>e.classList.toggle("hidden",!admin));$("loginBtn").classList.toggle("hidden",admin);$("logoutBtn").classList.toggle("hidden",!admin);$("modeText").textContent=admin?"Mode admin — tu pilotes les jeux en direct.":"Vue joueur — tout se synchronise en direct."}
-$("loginBtn").onclick=()=>$("modal").classList.remove("hidden");$("cancelLogin").onclick=()=>$("modal").classList.add("hidden");$("okLogin").onclick=()=>{if($("pwd").value===ADMIN_PASSWORD){admin=true;localStorage.setItem("malou_admin","1");$("modal").classList.add("hidden");mode()}else alert("Mot de passe incorrect")};$("logoutBtn").onclick=()=>{admin=false;localStorage.removeItem("malou_admin");mode();showPage("home")};document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+  await initSupabase();
 
-function shuffle(a){return[...a].sort(()=>Math.random()-.5)}
-function confetti(){for(let i=0;i<90;i++){let c=document.createElement("div");c.style.cssText=`position:fixed;top:-10px;left:${Math.random()*100}vw;width:10px;height:14px;background:${["#ff4fb8","#7b2cff","#ffd65a"][Math.floor(Math.random()*3)]};z-index:99;animation:fall 1.4s linear forwards`;document.body.appendChild(c);setTimeout(()=>c.remove(),1600)}}let st=document.createElement("style");st.innerHTML="@keyframes fall{to{transform:translateY(105vh) rotate(500deg);opacity:.2}}";document.head.appendChild(st);
-
-async function initSupabase(){
-  if(!window.SUPABASE_URL || window.SUPABASE_URL.includes("COLLE_ICI") || !window.SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY.includes("COLLE_ICI")){
-    $("syncStatus").textContent="⚠️ Config Supabase manquante";
-    return;
+  if(params.get("game") === "bingo"){
+    showPage("bingo");
+    if(p) openBingo();
+  } else {
+    showPage("home");
   }
-  sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-  $("syncStatus").textContent="✅ Connecté à Supabase";
-  await loadWho(); await loadBingoSettings(); await loadPlayers();
-  sb.channel("game_state_changes").on("postgres_changes",{event:"*",schema:"public",table:"game_state"},payload=>{
-    if(payload.new.id==="who"){who=payload.new.data; renderWho()}
-    if(payload.new.id==="bingo_settings"){bingoSettings=payload.new.data; renderBingoSettings(); if(currentPlayer) loadBingo(currentPlayer)}
-  }).subscribe();
-  sb.channel("bingo_cards_changes").on("postgres_changes",{event:"*",schema:"public",table:"bingo_cards"},payload=>{
-    if(payload.new?.player===currentPlayer) renderBingo(payload.new.data);
-    loadPlayers();
-  }).subscribe();
 }
 
-async function saveGame(id,data){await sb.from("game_state").upsert({id,data,updated_at:new Date().toISOString()})}
-async function loadWho(){let {data,error}=await sb.from("game_state").select("data").eq("id","who").single(); if(error){$("syncStatus").textContent="⚠️ Lance le SQL Supabase d’abord";return} if(data) who=data.data; renderWho()}
-function buildTiles(){let n=+who.grid||10, t=$("tiles");t.innerHTML="";t.style.gridTemplateColumns=`repeat(${n},1fr)`;t.style.gridTemplateRows=`repeat(${n},1fr)`;let total=n*n;who.hidden=who.hidden?.length===total?who.hidden:Array(total).fill(false);for(let i=0;i<total;i++){let d=document.createElement("div");d.className="tile";if(who.hidden?.[i]) d.classList.add("off");d.onclick=async()=>{if(!admin)return;who.hidden[i]=!who.hidden[i];await saveGame("who",who)};t.appendChild(d)}}
-function renderWho(){ $("whoGoal").value=who.goal||37; $("whoGrid").value=who.grid||10; $("whoAnswer").value=who.answer||""; $("answerBox").textContent=who.answer||"Réponse masquée"; $("subs").textContent=who.subs||0; $("goalText").textContent=who.goal||37; $("bar").style.width=Math.min(100,(who.subs||0)/(who.goal||37)*100)+"%"; $("clue").textContent=who.clue||"💡 Indice : pas encore dévoilé"; if(who.image){$("whoImg").src=who.image;$("whoImg").style.display="block";$("placeholder").style.display="none"} $("whoImg").style.filter=`blur(${who.blur??18}px)`; buildTiles()}
-$("whoGrid").onchange=async()=>{who.grid=+$("whoGrid").value;who.hidden=Array(who.grid*who.grid).fill(false);await saveGame("who",who)};$("whoGoal").oninput=async()=>{who.goal=+$("whoGoal").value;await saveGame("who",who)};$("whoFile").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=async ev=>{who.image=ev.target.result;await saveGame("who",who)};r.readAsDataURL(f)};$("showClue").onclick=async()=>{who.clue="💡 Indice : "+($("whoClueInput").value||"pas encore dévoilé");await saveGame("who",who)};$("toggleAnswer").onclick=()=>{$("answerBox").classList.toggle("visible")};$("whoAnswer").oninput=async()=>{who.answer=$("whoAnswer").value;await saveGame("who",who)};function revealRandom(){let n=+who.grid||10,total=n*n;who.hidden=who.hidden?.length===total?who.hidden:Array(total).fill(false);let left=who.hidden.map((v,i)=>!v?i:null).filter(v=>v!==null);if(left.length){who.hidden[left[Math.floor(Math.random()*left.length)]]=true}}$("addSub").onclick=async()=>{who.subs=(who.subs||0)+1;revealRandom();if(who.subs%2===0)who.blur=Math.max(0,(who.blur??18)-1);await saveGame("who",who)};$("revealOne").onclick=async()=>{revealRandom();await saveGame("who",who)};$("resetWho").onclick=async()=>{who={subs:0,goal:37,grid:10,blur:18,hidden:Array(100).fill(false),clue:"💡 Indice : pas encore dévoilé",answer:"",image:""};await saveGame("who",who)};
-
-async function loadBingoSettings(){let {data,error}=await sb.from("game_state").select("data").eq("id","bingo_settings").single(); if(error)return; if(data)bingoSettings=data.data; renderBingoSettings()}
-function renderBingoSettings(){ $("bingoSize").value=bingoSettings.size||4; $("bingoReward").value=bingoSettings.reward||"50 € pour le premier Bingo"; $("bingoTasks").value=(bingoSettings.tasks||[]).join("\n"); $("rewardTxt").textContent=bingoSettings.reward||"50 € pour le premier Bingo"}
-$("saveBingoSettings").onclick=async()=>{bingoSettings={size:+$("bingoSize").value,reward:$("bingoReward").value,tasks:$("bingoTasks").value.split("\n").map(x=>x.trim()).filter(Boolean)};await saveGame("bingo_settings",bingoSettings)};
-
-async function openBingo(){let p=$("bingoPlayer").value.trim(); if(!p){alert("Mets ton prénom bb");return} currentPlayer=p; localStorage.setItem("player",p); $("bingoName").textContent=p; let {data}=await sb.from("bingo_cards").select("data").eq("player",p).maybeSingle(); if(data) renderBingo(data.data); else {let card=createBingoCard(); await sb.from("bingo_cards").insert({player:p,data:card}); renderBingo(card)}}
-function createBingoCard(){let size=bingoSettings.size||4;let tasks=shuffle(bingoSettings.tasks||[]).slice(0,size*size);return{size,reward:bingoSettings.reward,cells:tasks.map(t=>({t,checked:false}))}}
-function renderBingo(card){$("bingoName").textContent=currentPlayer||"...";$("rewardTxt").textContent=card.reward||bingoSettings.reward;let n=card.size||4,b=$("bingoBoard");b.style.gridTemplateColumns=`repeat(${n},1fr)`;b.innerHTML="";card.cells.forEach((it,idx)=>{let c=document.createElement("button");c.className="bingoCell";c.textContent=it.t;if(it.checked)c.classList.add("checked");c.onclick=async()=>{it.checked=!it.checked;await sb.from("bingo_cards").upsert({player:currentPlayer,data:card,updated_at:new Date().toISOString()});renderBingo(card)};b.appendChild(c)});checkBingo(n)}
-function checkBingo(n){let c=[...document.querySelectorAll(".bingoCell")];c.forEach(x=>x.classList.remove("win"));let lines=[];for(let r=0;r<n;r++)lines.push([...Array(n)].map((_,i)=>r*n+i));for(let col=0;col<n;col++)lines.push([...Array(n)].map((_,i)=>i*n+col));lines.push([...Array(n)].map((_,i)=>i*n+i));lines.push([...Array(n)].map((_,i)=>i*n+n-1-i));for(let l of lines)if(l.every(i=>c[i]?.classList.contains("checked"))){l.forEach(i=>c[i].classList.add("win"));$("bingoMsg").textContent="🎉 BINGOOOOOO !!!";confetti();return}$("bingoMsg").textContent="Clique sur tes cases validées ✅"}
-$("openBingo").onclick=openBingo;$("startBingo").onclick=()=>{$("bingoPlayer").value=$("playerName").value;showPage("bingo");openBingo()};$("resetMyBingo").onclick=async()=>{if(!currentPlayer)return;await sb.from("bingo_cards").delete().eq("player",currentPlayer);await openBingo()};$("copyLink").onclick=async()=>{let u=new URL(location.href);u.searchParams.set("player",$("bingoPlayer").value||"joueur");u.searchParams.set("game","bingo");await navigator.clipboard.writeText(u);$("bingoMsg").textContent="Lien copié 💜"};
-
-async function loadPlayers(){if(!sb)return;let {data}=await sb.from("bingo_cards").select("player,data").order("updated_at",{ascending:false});$("adminPlayers").innerHTML=(data||[]).map(row=>{let total=row.data.cells?.length||0,done=row.data.cells?.filter(c=>c.checked).length||0;return `<div class="playerCard">💜 ${row.player}<br>${done}/${total} cases cochées</div>`}).join("")||"Aucun joueur pour l’instant."}
-
-async function init(){mode();let params=new URLSearchParams(location.search);let p=params.get("player")||localStorage.getItem("player")||"";$("playerName").value=p;$("bingoPlayer").value=p;await initSupabase();if(params.get("game")==="bingo"){showPage("bingo");if(p)openBingo()}else showPage("home")}init();
+init();
