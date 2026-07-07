@@ -72,16 +72,24 @@ function bsSkinPlan(groups, n){
   return {plans, covered};
 }
 
-function bsAppendSkins(board, plans, kind){
+// Les skins sont posés en ABSOLU (calculés sur les cases réelles) → ils ne
+// participent pas à la grille, donc n'entraînent aucun décalage des cases.
+function bsAppendSkins(board, plans, kind, n){
+  if(board.offsetParent === null || !board.offsetWidth) return; // grille masquée : au prochain rendu visible
   plans.forEach(p => {
+    const first = board.querySelector(`.bsCell[data-cell="${p.r0 * n + p.c0}"]`);
+    const last  = board.querySelector(`.bsCell[data-cell="${(p.r0 + p.h - 1) * n + (p.c0 + p.w - 1)}"]`);
+    if(!first || !last) return;
+    const left = first.offsetLeft, top = first.offsetTop;
+    const w = (last.offsetLeft + last.offsetWidth) - left;
+    const h = (last.offsetTop + last.offsetHeight) - top;
     const d = document.createElement("div");
     d.className = "bsSkin " + kind;
-    d.style.gridColumn = (p.c0 + 1) + " / span " + p.w;
-    d.style.gridRow = (p.r0 + 1) + " / span " + p.h;
+    d.style.cssText = `left:${left}px;top:${top}px;width:${w}px;height:${h}px`;
     d.innerHTML = bsBoatSVG(p.L, kind === "wreck");
     const s = d.firstElementChild;
-    if(p.h > p.w && p.L > 1){ // vertical : on fait pivoter le skin horizontal
-      s.setAttribute("style", `position:absolute;left:50%;top:50%;width:${p.L * 100}%;height:${100 / p.L}%;transform:translate(-50%,-50%) rotate(90deg)`);
+    if(p.h > p.w && p.L > 1){ // bateau vertical : on pivote le skin horizontal
+      s.setAttribute("style", `position:absolute;left:50%;top:50%;width:${h}px;height:${w}px;transform:translate(-50%,-50%) rotate(90deg)`);
     } else {
       s.setAttribute("style", "position:absolute;inset:0;width:100%;height:100%");
     }
@@ -204,6 +212,29 @@ function renderBsWinners(){
     }).join("");
 }
 
+// 🚀 Qui a des torpilles prêtes à tirer — visible par TOUS pendant la partie
+function renderBsTorpBoard(){
+  const box = $("bsTorpBoard");
+  if(!box) return;
+  if(!bs.live){ box.classList.add("hidden"); box.innerHTML = ""; return; }
+  box.classList.remove("hidden");
+  const holders = bsTorp
+    .filter(t => (t.count || 0) > 0 && !isExcludedEmail(t.email))
+    .sort((a, b) => b.count - a.count);
+  if(!holders.length){
+    box.innerHTML = `<div class="bsTorpTitle">🚀 Torpilles en jeu</div><div class="bsTorpEmpty">Personne n'a de torpille — vendez des abos ! 💸</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="bsTorpTitle">🚀 Torpilles disponibles</div>` + holders.map(t => {
+    const p = bsPlayersMap[(t.email || "").toLowerCase()];
+    const name = t.name || p?.name || t.email;
+    const av = p?.avatar;
+    const badge = av ? `<img src="${esc(av)}" class="pAvatar mini" alt=""/>` : `<span class="pAvatar fallback mini">${esc((name || "?")[0].toUpperCase())}</span>`;
+    const me = (t.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase();
+    return `<div class="bsTorpRow${me ? " me" : ""}">${badge}<strong>${esc(name)}${me ? " (toi)" : ""}</strong><span class="chip">🚀 ${t.count}</span></div>`;
+  }).join("");
+}
+
 function renderBattleship(){
   if(bsPaint) return; // ne pas re-rendre en plein coup de pinceau
   const n = bs.grid || 10;
@@ -227,6 +258,13 @@ function renderBattleship(){
   if($("bsShipsLeft")) $("bsShipsLeft").textContent = totalShips ? Math.max(0, totalShips - sunkCount) : "?";
   if($("bsFleetBar")) $("bsFleetBar").style.width = totalShips ? Math.round(sunkCount / totalShips * 100) + "%" : "0%";
   if($("bsRewardChip")) $("bsRewardChip").textContent = "🏆 " + (bs.reward || "10 €") + " le coup fatal";
+  // Hors partie : on n'affiche pas de stats fantômes
+  if(!bs.live && !inPrep){
+    if($("bsHits")) $("bsHits").textContent = "0";
+    if($("bsMiss")) $("bsMiss").textContent = "0";
+    if($("bsShipsLeft")) $("bsShipsLeft").textContent = "—";
+    if($("bsFleetBar")) $("bsFleetBar").style.width = "0%";
+  }
 
   // Panneaux admin : préparation (dessin/réglages) vs partie (distribution/actions)
   if($("bsSettings")) $("bsSettings").classList.toggle("hidden", !!bs.live);
@@ -241,8 +279,10 @@ function renderBattleship(){
   if($("bsWait")) $("bsWait").classList.toggle("hidden", !showWait);
   if($("bsPlay")) $("bsPlay").classList.toggle("hidden", showWait);
 
-  // 💰 Gains visibles par tous
+  // 💰 Gains + 🚀 torpilles en jeu (visibles par tous)
   renderBsWinners();
+  renderBsTorpBoard();
+  if(typeof updateGameStatus === "function") updateGameStatus();
 
   // Grille
   const board = $("bsBoard");
@@ -297,9 +337,9 @@ function renderBattleship(){
       }
       board.appendChild(c);
     }
-    bsAppendSkins(board, draftPlan.plans, "fleet");
-    bsAppendSkins(board, wreckPlan.plans, "wreck");
-    bsAppendSkins(board, ghostPlan.plans, "ghost");
+    bsAppendSkins(board, draftPlan.plans, "fleet", n);
+    bsAppendSkins(board, wreckPlan.plans, "wreck", n);
+    bsAppendSkins(board, ghostPlan.plans, "ghost", n);
 
     if(inPrep){ bsBindPaint(board, n); bsUpdateShipPreview(); }
     else { board.onpointerdown = board.onpointermove = board.onpointerup = board.onpointercancel = null; board.style.touchAction = ""; }
@@ -466,8 +506,11 @@ async function bsLaunch(){
 
 async function bsStop(){
   if(!confirm("Terminer la bataille navale ?")) return;
-  await bsArchive();
-  bs.live = false;
+  await bsArchive();                                    // sauvegarde dans l'historique d'abord
+  await sb.from("bs_shots").delete().gte("cell", 0);    // puis on remet à zéro
+  await sb.from("bs_torpedoes").delete().neq("email", "");
+  await sb.from("bs_ships").update({ sunk:false, sunk_by:null }).gte("id", 0);
+  bs = { ...bs, live:false, started_at:"", ships_total:0 };
   await saveGame("battleship", bs);
   await loadBattleship();
   if(typeof loadHistory === "function") loadHistory();

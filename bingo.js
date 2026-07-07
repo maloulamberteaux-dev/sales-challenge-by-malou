@@ -25,6 +25,7 @@ function renderBingoAvailability(){
     $("statRankLabel").textContent = "Rookie";
     $("bingoBar").style.width = "0%";
   }
+  if(typeof updateGameStatus === "function") updateGameStatus();
 }
 
 async function loadBingoSettings(){

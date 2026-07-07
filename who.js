@@ -194,6 +194,7 @@ function renderWho(){
   lastWinnerSeen = who.winner || "";
 
   buildTiles();
+  if(typeof updateGameStatus === "function") updateGameStatus();
 }
 
 function revealRandom(){
