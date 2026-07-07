@@ -1,4 +1,7 @@
 let who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:false, hidden:[], clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
+// 🔒 Anti-triche : l'original et la réponse restent dans who_secret (table admin-only).
+// who.image (public) = composite généré par l'admin avec UNIQUEMENT les pixels révélés.
+let whoSecret = {image:"", answer:""};
 let lastWinnerSeen = null; // pour ne fêter le vainqueur qu'une fois
 
 async function loadWho(){
@@ -17,10 +20,87 @@ async function loadWho(){
   renderWho();
 }
 
+// Charge les secrets (photo originale + réponse) — ne renvoie des données qu'aux admins (RLS)
+async function loadWhoSecret(){
+  if(!admin || !sb) return;
+  const {data} = await sb.from("who_secret").select("*").eq("id", "who").maybeSingle();
+  whoSecret = data ? {image:data.image || "", answer:data.answer || ""} : {image:"", answer:""};
+  renderWho();
+}
+
+async function saveWhoSecret(){
+  if(!admin || !sb) return;
+  const {error} = await sb.from("who_secret").upsert({id:"who", image:whoSecret.image, answer:whoSecret.answer});
+  if(error){ console.error(error); alert("Sauvegarde secrète impossible : " + error.message); }
+}
+
 async function saveWho(){
+  // L'admin régénère le composite public avant chaque sauvegarde
+  if(admin && whoSecret.image){
+    who.image = await whoBuildComposite();
+  }
   const ok = await saveGame("who", who);
   renderWho();
   return ok;
+}
+
+function whoLoadImg(src){
+  return new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("Image illisible"));
+    i.src = src;
+  });
+}
+
+// Construit l'image publique : pixels révélés uniquement, flou incrusté si activé
+async function whoBuildComposite(){
+  try {
+    if(!whoSecret.image) return who.image || "";
+    const img = await whoLoadImg(whoSecret.image);
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d");
+    const finished = !!who.winner && !who.live;
+
+    if(finished){ // fin de partie → photo entière et nette
+      ctx.drawImage(img, 0, 0);
+      return cv.toDataURL("image/jpeg", .82);
+    }
+
+    // Fond : image nette, ou floutée (flou INCRUSTÉ dans les pixels, pas du CSS contournable)
+    const amt = who.blurEnabled ? Math.max(0, Math.round(20 * (1 - (who.subs || 0) / (who.goal || 37)))) : 0;
+    if(amt > 0){
+      ctx.filter = `blur(${amt}px)`;
+      if(ctx.filter && ctx.filter !== "none"){
+        ctx.drawImage(img, 0, 0);
+        ctx.filter = "none";
+      } else { // navigateur sans ctx.filter → pixelisation équivalente
+        const tw = Math.max(1, Math.round(w / amt)), th = Math.max(1, Math.round(h / amt));
+        const t = document.createElement("canvas");
+        t.width = tw; t.height = th;
+        t.getContext("2d").drawImage(img, 0, 0, tw, th);
+        ctx.drawImage(t, 0, 0, tw, th, 0, 0, w, h);
+      }
+    } else {
+      ctx.drawImage(img, 0, 0);
+    }
+
+    // Masque les cases non révélées (hidden[i] = true signifie révélée)
+    const n = +who.grid || 10;
+    const cw = w / n, ch = h / n;
+    for(let i = 0; i < n * n; i++){
+      if(who.hidden?.[i]) continue;
+      const r = Math.floor(i / n), c = i % n;
+      ctx.fillStyle = ((r + c) % 2 === 0) ? "#ff63c6" : "#884cff";
+      ctx.fillRect(Math.floor(c * cw) - 1, Math.floor(r * ch) - 1, Math.ceil(cw) + 2, Math.ceil(ch) + 2);
+    }
+    return cv.toDataURL("image/jpeg", .82);
+  } catch(e){
+    console.error(e);
+    return who.image || "";
+  }
 }
 
 // Construit (ou réutilise) les tuiles — la réutilisation permet l'animation CSS de révélation
@@ -54,15 +134,15 @@ function renderWho(){
   who.hidden = who.hidden?.length === total ? who.hidden : Array(total).fill(false);
   const revealed = who.hidden.filter(Boolean).length;
   const finished = !!who.winner && !who.live;
-  const blurOn = !!who.blurEnabled;   // couche de flou par-dessus les tuiles
+  const blurOn = !!who.blurEnabled;   // couche de flou (incrustée dans l'image publiée)
   const pct = total ? Math.round(revealed / total * 100) : 0;
   // Les joueurs voient la photo quand la partie est lancée ou terminée ; l'admin voit tout
   const canSee = admin || !!who.live || finished;
 
   $("whoGoal").value = who.goal || 37;
   $("whoGrid").value = n;
-  $("whoAnswer").value = who.answer || "";
-  $("answerBox").textContent = who.answer || "Réponse masquée";
+  $("whoAnswer").value = whoSecret.answer || "";
+  $("answerBox").textContent = whoSecret.answer || "Réponse masquée";
   $("subs").textContent = who.subs || 0;
   $("goalText").textContent = who.goal || 37;
   $("whoRevealed").textContent = canSee ? (finished ? "💯" : pct + "%") : "🔒";
@@ -78,12 +158,10 @@ function renderWho(){
   if($("whoActions")) $("whoActions").classList.toggle("hidden", !who.live);
 
   if(who.image && canSee){
-    $("whoImg").src = who.image;
+    $("whoImg").src = who.image;                  // composite public (pixels révélés uniquement)
     $("whoImg").style.display = "block";
-    // Les tuiles se révèlent toujours ; le flou (optionnel) se superpose par-dessus
-    const blurAmount = finished ? 0 : Math.max(0, Math.round(20 * (1 - (who.subs || 0) / (who.goal || 37))));
+    $("whoImg").style.filter = "none";            // plus de flou CSS : tout est incrusté
     $("tiles").style.display = finished ? "none" : "grid";
-    $("whoImg").style.filter = (blurOn && !finished) ? `blur(${blurAmount}px)` : "none";
     $("placeholder").style.display = "none";
   } else {
     $("whoImg").removeAttribute("src");
@@ -135,9 +213,10 @@ async function designateWinner(name){
   // Un seul vainqueur par manche : on remplace si l'admin change d'avis
   await sb.from("results").delete().eq("game", "who").eq("round", round);
   await sb.from("results").insert({game:"who", player:name, round});
-  await archiveWhoGame(name, round);
   who.winner = name;
   who.live = false;
+  who.answer = whoSecret.answer || who.answer || ""; // la réponse n'est publiée qu'à la fin
+  await archiveWhoGame(name, round);
   $("winnerPick").classList.add("hidden");
   await saveWho();
   if(typeof loadHistory === "function") loadHistory();
@@ -156,13 +235,13 @@ async function archiveWhoGame(winner, round){
     started_at: who.startedAt || null,
     winner,
     data: {
-      image: who.image || "",
+      image: whoSecret.image || who.image || "",
       reveal_pct: total ? Math.round(revealed / total * 100) : 0,
       revealed, total,
       subs: who.subs || 0,
       goal: who.goal || 0,
       grid: n,
-      answer: who.answer || "",
+      answer: whoSecret.answer || who.answer || "",
       clue: who.clue || ""
     }
   });
@@ -190,7 +269,7 @@ async function renderWinnerPick(){
 function bindWhoEvents(){
   // Lancer / arrêter la partie (visible par tous les joueurs en direct)
   $("toggleLive").onclick = async () => {
-    if(!who.live && !who.image){
+    if(!who.live && !whoSecret.image && !who.image){
       alert("Ajoute d'abord une photo mystère avant de lancer la partie 😉");
       return;
     }
@@ -198,15 +277,19 @@ function bindWhoEvents(){
       // Nouvelle manche : repart de zéro si la précédente est terminée
       if(who.winner){
         who.subs = 0;
-        who.blur = 18;
         who.hidden = Array((+who.grid || 10) * (+who.grid || 10)).fill(false);
         who.winner = "";
       }
+      who.answer = "";                 // la réponse reste secrète pendant la partie
       who.startedAt = new Date().toISOString();
       who.live = true;
     } else {
       who.live = false;
     }
+    await saveWho();
+  };
+  $("toggleBlur").onclick = async () => {
+    who.blurEnabled = !who.blurEnabled;
     await saveWho();
   };
   $("pickWinnerBtn").onclick = async () => {
@@ -228,9 +311,10 @@ function bindWhoEvents(){
     if(!f) return;
     try {
       $("syncStatus").textContent = "🔄 Compression de l’image...";
-      who.image = await fileToCompressedDataUrl(f);
+      whoSecret.image = await fileToCompressedDataUrl(f);   // 🔒 l'original part dans la table secrète
+      await saveWhoSecret();
       who.hidden = Array((+who.grid || 10) * (+who.grid || 10)).fill(false);
-      await saveWho();
+      await saveWho();                                       // publie le composite (tout masqué)
     } catch(error) {
       console.error(error);
       alert(error.message || "Impossible de charger l’image.");
@@ -240,14 +324,13 @@ function bindWhoEvents(){
     who.clue = "💡 Indice : " + ($("whoClueInput").value || "pas encore dévoilé");
     await saveWho();
   };
-  $("toggleBlur").onclick = async () => {
-    who.blurEnabled = !who.blurEnabled;
-    await saveWho();
-  };
   $("toggleAnswer").onclick = () => $("answerBox").classList.toggle("visible");
-  $("whoAnswer").oninput = async () => {
-    who.answer = $("whoAnswer").value;
-    await saveWho();
+  $("whoAnswer").oninput = () => {
+    // 🔒 la réponse ne va QUE dans la table secrète (admin-only)
+    whoSecret.answer = $("whoAnswer").value;
+    $("answerBox").textContent = whoSecret.answer || "Réponse masquée";
+    clearTimeout(bindWhoEvents._ansT);
+    bindWhoEvents._ansT = setTimeout(saveWhoSecret, 600);
   };
   $("addSub").onclick = async () => {
     who.subs = (who.subs || 0) + 1;
@@ -261,6 +344,8 @@ function bindWhoEvents(){
   $("resetWho").onclick = async () => {
     if(!confirm("Réinitialiser complètement le Qui suis-je ?")) return;
     who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:who.blurEnabled, hidden:Array(100).fill(false), clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
+    whoSecret = {image:"", answer:""};
+    await saveWhoSecret();
     await saveWho();
   };
 }

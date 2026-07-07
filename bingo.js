@@ -39,7 +39,50 @@ function renderBingoSettings(){
   $("bingoReward").value = bingoSettings.reward || "50 € pour le premier Bingo";
   $("bingoTasks").value = (bingoSettings.tasks || []).join("\n");
   $("rewardTxt").textContent = "🏆 " + (bingoSettings.reward || "50 € pour le premier Bingo");
+  renderBingoLayout();
   renderBingoAvailability();
+}
+
+// --- Disposition des cases (l'admin choisit la mission de chaque case) ---
+
+function bingoTasksFromUI(){
+  return $("bingoTasks").value.split("\n").map(x => x.trim()).filter(Boolean);
+}
+
+function bingoLayoutFromUI(){
+  return [...document.querySelectorAll("#bingoLayout select")].map(s => s.value);
+}
+
+function renderBingoLayout(){
+  const box = $("bingoLayout");
+  if(!box) return;
+  const ordered = bingoSettings.ordered !== false; // par défaut : grille identique pour tous
+  if($("bingoOrderMode")) $("bingoOrderMode").textContent = ordered
+    ? "📋 Grille identique pour tous (ordre défini)"
+    : "🎲 Grille mélangée par joueur";
+  box.classList.toggle("hidden", !ordered);
+  if(!ordered) return;
+
+  const n = +$("bingoSize").value || bingoSettings.size || 4;
+  const tasks = bingoTasksFromUI();
+  const layout = bingoSettings.layout || [];
+  box.style.gridTemplateColumns = `repeat(${n},1fr)`;
+  box.innerHTML = "";
+  for(let i = 0; i < n * n; i++){
+    const sel = document.createElement("select");
+    sel.title = `Case ${i + 1}`;
+    tasks.forEach(t => {
+      const o = document.createElement("option");
+      o.value = t; o.textContent = t;
+      sel.appendChild(o);
+    });
+    // pré-remplissage : disposition sauvegardée, sinon les missions dans l'ordre
+    const pre = (layout[i] && tasks.includes(layout[i])) ? layout[i] : (tasks[i % (tasks.length || 1)] || "");
+    sel.value = pre;
+    sel.onchange = () => { bingoSettings.layout = bingoLayoutFromUI(); };
+    box.appendChild(sel);
+  }
+  bingoSettings.layout = bingoLayoutFromUI();
 }
 
 async function loadBingo(player){
@@ -66,6 +109,12 @@ async function openBingo(){
 
 function createBingoCard(){
   let size = bingoSettings.size || 4;
+  // Grille identique pour tous : on suit la disposition définie par l'admin
+  const layout = bingoSettings.layout || [];
+  if(bingoSettings.ordered !== false && layout.length === size * size){
+    return {size, reward:bingoSettings.reward, cells:layout.map(t => ({t, checked:false}))};
+  }
+  // Sinon : mélange propre à chaque joueur
   let tasks = shuffle(bingoSettings.tasks || []).slice(0, size * size);
   return {size, reward:bingoSettings.reward, cells:tasks.map(t => ({t, checked:false}))};
 }
@@ -226,10 +275,23 @@ function bindBingoEvents(){
       ...bingoSettings,
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
-      tasks:$("bingoTasks").value.split("\n").map(x => x.trim()).filter(Boolean)
+      tasks:bingoTasksFromUI(),
+      ordered:bingoSettings.ordered !== false,
+      layout:bingoLayoutFromUI()
     };
     await saveGame("bingo_settings", bingoSettings);
     renderBingoSettings();
+  };
+
+  // Bascule : grille identique (ordre défini) / grille mélangée par joueur
+  $("bingoOrderMode").onclick = () => {
+    bingoSettings.ordered = !(bingoSettings.ordered !== false);
+    renderBingoLayout();
+  };
+  $("bingoSize").onchange = () => renderBingoLayout();
+  $("bingoTasks").oninput = () => {
+    clearTimeout(bindBingoEvents._lt);
+    bindBingoEvents._lt = setTimeout(renderBingoLayout, 400);
   };
 
   // Lance une nouvelle partie : grilles fraîches pour tout le monde
@@ -239,7 +301,9 @@ function bindBingoEvents(){
     bingoSettings = {
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
-      tasks:$("bingoTasks").value.split("\n").map(x => x.trim()).filter(Boolean),
+      tasks:bingoTasksFromUI(),
+      ordered:bingoSettings.ordered !== false,
+      layout:bingoLayoutFromUI(),
       active:true,
       startedAt:new Date().toISOString()
     };

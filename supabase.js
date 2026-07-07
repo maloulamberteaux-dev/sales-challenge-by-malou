@@ -64,6 +64,7 @@ async function handleSession(session){
     await openBingo();
   }
   if(sb) loadBattleship(); // recharge avec le bon rôle (admin voit ses bateaux)
+  if(sb) loadWhoSecret();  // secrets du Qui suis-je (réponse + photo originale, admin-only)
 }
 
 // Résout les noms d'affichage des comptes de test (pour filtrer les listes name-based)
