@@ -148,6 +148,7 @@ function checkBingo(n){
 // Enregistre la victoire de la manche en cours (1 seule fois par joueur et par manche)
 async function recordBingoWin(){
   if(!sb || !currentPlayer) return;
+  if(isExcludedEmail(currentUser?.email)) return; // comptes de test : pas de victoire enregistrée
   const round = bingoSettings.startedAt || "";
   await sb.from("results").upsert({game:"bingo", player:currentPlayer, round}, {ignoreDuplicates:true});
 }
@@ -178,7 +179,7 @@ async function archiveBingoGame(){
 async function loadPlayers(){
   if(!sb) return;
   let {data} = await sb.from("bingo_cards").select("player,data").order("updated_at", {ascending:false});
-  let rows = (data || []).map(r => {
+  let rows = (data || []).filter(r => !isExcludedName(r.player)).map(r => {
     const cells = r.data.cells || [];
     const total = cells.length, done = cells.filter(c => c.checked).length;
     const pct = total ? Math.round(done / total * 100) : 0;
@@ -206,7 +207,7 @@ async function loadUsers(){
     $("usersList").innerHTML = "<p>⚠️ Table <b>players</b> absente — lance le SQL de setup.</p>";
     return;
   }
-  $("usersList").innerHTML = (data || []).map(u => `
+  $("usersList").innerHTML = (data || []).filter(u => !isExcludedEmail(u.email)).map(u => `
     <div class="playerCard">
       ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}
       <div class="pInfo">
