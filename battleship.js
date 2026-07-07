@@ -14,6 +14,81 @@ function bsMyTorp(){
   return bsTorp.find(t => (t.email || "").toLowerCase() === e)?.count || 0;
 }
 
+// Skin du bateau selon sa taille
+function bsSkinInfo(len){
+  if(len >= 5) return {name:"Porte-avions", emoji:"🛳️"};
+  if(len === 4) return {name:"Croiseur", emoji:"🚢"};
+  if(len === 3) return {name:"Sous-marin", emoji:"🫧"};
+  if(len === 2) return {name:"Vedette", emoji:"🚤"};
+  return {name:"Canot", emoji:"🛟"};
+}
+
+// Dessin SVG vue de dessus (horizontal, proue à droite) — skin par taille
+function bsBoatSVG(len, wreck){
+  const W = len * 100;
+  const P = wreck
+    ? {hull:"#6d1220", deck:"#8a2033", det:"#450a13", lite:"#ff9d9d", line:"#ffb3b3"}
+    : {hull:"#4b5a6b", deck:"#66788c", det:"#2f3a47", lite:"#aebfd2", line:"#d7e1ec"};
+  const hull = `<path d="M 12 50 Q 12 24 44 22 L ${W-54} 22 Q ${W-10} 34 ${W-10} 50 Q ${W-10} 66 ${W-54} 78 L 44 78 Q 12 76 12 50 Z" fill="${P.hull}" stroke="${P.det}" stroke-width="4"/>`;
+  let deck = "";
+  if(len === 1){ // Canot
+    deck = `<ellipse cx="50" cy="50" rx="24" ry="14" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="40" y="46" width="20" height="8" rx="4" fill="${P.det}"/>`;
+  } else if(len === 2){ // Vedette
+    deck = `<path d="M 56 34 L 112 34 L 130 50 L 112 66 L 56 66 Z" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="66" y="42" width="28" height="16" rx="4" fill="${P.lite}"/>`;
+  } else if(len === 3){ // Sous-marin
+    deck = `<rect x="${W/2-30}" y="30" width="60" height="26" rx="11" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="${W/2-4}" y="14" width="8" height="20" rx="3" fill="${P.det}"/>
+            <circle cx="58" cy="50" r="6" fill="${P.lite}"/>
+            <circle cx="${W-72}" cy="50" r="6" fill="${P.lite}"/>`;
+  } else if(len === 4){ // Croiseur (2 tourelles + passerelle)
+    deck = `<rect x="118" y="36" width="80" height="28" rx="8" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="140" y="22" width="12" height="16" rx="3" fill="${P.det}"/>
+            <circle cx="66" cy="50" r="15" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="66" y="45" width="38" height="10" rx="5" fill="${P.det}"/>
+            <circle cx="${W-84}" cy="50" r="15" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="${W-84}" y="45" width="38" height="10" rx="5" fill="${P.det}"/>`;
+  } else { // Porte-avions (piste + îlot)
+    deck = `<line x1="34" y1="50" x2="${W-26}" y2="50" stroke="${P.line}" stroke-width="5" stroke-dasharray="18 13"/>
+            <rect x="${Math.round(W*0.6)}" y="22" width="50" height="20" rx="5" fill="${P.deck}" stroke="${P.det}" stroke-width="3"/>
+            <rect x="${Math.round(W*0.6)+32}" y="12" width="9" height="14" rx="3" fill="${P.det}"/>`;
+  }
+  return `<svg viewBox="0 0 ${W} 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${hull}${deck}</svg>`;
+}
+
+// Plans de skins : uniquement les bateaux en LIGNE droite (sinon repli sur les coques simples)
+function bsSkinPlan(groups, n){
+  const plans = [], covered = new Set();
+  groups.forEach(g => {
+    const rows = g.map(c => Math.floor(c / n)), cols = g.map(c => c % n);
+    const r0 = Math.min(...rows), c0 = Math.min(...cols);
+    const h = Math.max(...rows) - r0 + 1, w = Math.max(...cols) - c0 + 1;
+    const L = Math.max(w, h);
+    if(!((w === 1 || h === 1) && g.length === L)) return; // forme libre → pas de skin
+    g.forEach(c => covered.add(c));
+    plans.push({r0, c0, w, h, L});
+  });
+  return {plans, covered};
+}
+
+function bsAppendSkins(board, plans, kind){
+  plans.forEach(p => {
+    const d = document.createElement("div");
+    d.className = "bsSkin " + kind;
+    d.style.gridColumn = (p.c0 + 1) + " / span " + p.w;
+    d.style.gridRow = (p.r0 + 1) + " / span " + p.h;
+    d.innerHTML = bsBoatSVG(p.L, kind === "wreck");
+    const s = d.firstElementChild;
+    if(p.h > p.w && p.L > 1){ // vertical : on fait pivoter le skin horizontal
+      s.setAttribute("style", `position:absolute;left:50%;top:50%;width:${p.L * 100}%;height:${100 / p.L}%;transform:translate(-50%,-50%) rotate(90deg)`);
+    } else {
+      s.setAttribute("style", "position:absolute;inset:0;width:100%;height:100%");
+    }
+    board.appendChild(d);
+  });
+}
+
 async function loadBattleship(){
   if(!sb) return;
   const st = await sb.from("game_state").select("data").eq("id", "battleship").maybeSingle();
@@ -76,14 +151,66 @@ function bsShooterBadge(shot){
   return "";
 }
 
+// 💰 Qui a coulé quoi : le tir fatal de chaque bateau coulé (dérivé des tirs publics)
+function bsComputeWinners(){
+  const byShip = {};
+  bsShots.filter(s => s.hit && s.ship_id != null).forEach(s => {
+    (byShip[s.ship_id] = byShip[s.ship_id] || []).push(s);
+  });
+  const winners = [];
+  Object.values(byShip).forEach(shots => {
+    if(!shots.some(s => s.sunk)) return; // pas encore coulé
+    const fatal = shots.reduce((a, b) => new Date(a.fired_at || 0) > new Date(b.fired_at || 0) ? a : b);
+    winners.push({name:fatal.by_name || "?", email:(fatal.by_email || "").toLowerCase(), at:fatal.fired_at});
+  });
+  return winners.sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0));
+}
+
+// Total des gains : "2 bateaux × 10 €" calculé si possible ("20 €")
+function bsRewardTotal(count){
+  const m = String(bs.reward || "").trim().match(/^(\d+[.,]?\d*)\s*(.*)$/);
+  if(m){
+    const total = parseFloat(m[1].replace(",", ".")) * count;
+    return (Number.isInteger(total) ? total : total.toFixed(2)) + (m[2] ? " " + m[2] : "");
+  }
+  return count > 1 ? `${count} × ${bs.reward}` : (bs.reward || "");
+}
+
+function renderBsWinners(){
+  const box = $("bsWinners");
+  if(!box) return;
+  const winners = bsComputeWinners();
+  if(!winners.length){
+    if(bs.live){
+      box.classList.remove("hidden");
+      box.innerHTML = `<div class="bsWinTitle">💰 Prime : ${esc(bs.reward || "10 €")} par bateau coulé — encore personne, à toi de jouer !</div>`;
+    } else {
+      box.classList.add("hidden");
+    }
+    return;
+  }
+  const per = {};
+  winners.forEach(w => {
+    const k = w.email || w.name;
+    per[k] = per[k] || {name:w.name, email:w.email, count:0};
+    per[k].count++;
+  });
+  box.classList.remove("hidden");
+  box.innerHTML = `<div class="bsWinTitle">💰 Gains de la partie</div>` +
+    Object.values(per).sort((a, b) => b.count - a.count).map(p => {
+      const av = bsPlayersMap[p.email]?.avatar;
+      const badge = av ? `<img src="${esc(av)}" class="pAvatar mini" alt=""/>` : `<span class="pAvatar fallback mini">${esc((p.name || "?")[0].toUpperCase())}</span>`;
+      return `<div class="bsWinRow">${badge}<strong>${esc(p.name)}</strong><span class="bsWinShips">🔥 ${p.count} bateau${p.count > 1 ? "x" : ""}</span><span class="chip gold">${esc(bsRewardTotal(p.count))}</span></div>`;
+    }).join("");
+}
+
 function renderBattleship(){
   if(bsPaint) return; // ne pas re-rendre en plein coup de pinceau
   const n = bs.grid || 10;
   const inPrep = admin && !bs.live;
   const shotMap = {}; bsShots.forEach(s => shotMap[s.cell] = s);
-  const adminShipSet = admin ? new Set(bsShipsAdmin.flatMap(s => s.cells || [])) : null;
 
-  // Cases par bateau coulé (pour dessiner des coques connectées)
+  // Cases par bateau coulé (pour skins + coques connectées)
   const sunkByShip = {};
   bsShots.forEach(s => { if(s.sunk && s.ship_id != null){ (sunkByShip[s.ship_id] = sunkByShip[s.ship_id] || new Set()).add(s.cell); } });
   const sunkCellShip = {};
@@ -114,24 +241,43 @@ function renderBattleship(){
   if($("bsWait")) $("bsWait").classList.toggle("hidden", !showWait);
   if($("bsPlay")) $("bsPlay").classList.toggle("hidden", showWait);
 
+  // 💰 Gains visibles par tous
+  renderBsWinners();
+
   // Grille
   const board = $("bsBoard");
   if(board && !showWait){
     board.style.gridTemplateColumns = `repeat(${n},1fr)`;
     board.classList.toggle("prep", inPrep);
     board.innerHTML = "";
+
+    // Skins : flotte en préparation / épaves coulées / flotte fantôme de l'admin en partie
+    let draftPlan = {plans:[], covered:new Set()};
+    let wreckPlan = {plans:[], covered:new Set()};
+    let ghostPlan = {plans:[], covered:new Set()};
+    if(inPrep) draftPlan = bsSkinPlan(bsGroups([...bsDraft], n), n);
+    else {
+      wreckPlan = bsSkinPlan(Object.values(sunkByShip).map(s => [...s]), n);
+      if(admin){
+        const aliveShips = bsShipsAdmin.filter(s => !s.sunk).map(s => s.cells || []);
+        ghostPlan = bsSkinPlan(aliveShips, n);
+      }
+    }
+    const adminShipSet = admin ? new Set(bsShipsAdmin.flatMap(s => s.cells || [])) : null;
+
     for(let i = 0; i < n * n; i++){
       const c = document.createElement("button");
       c.className = "bsCell";
       c.dataset.cell = i;
       if(inPrep){
-        if(bsDraft.has(i)) c.classList.add("ship", ...bsShapeClasses(i, bsDraft, n));
+        if(bsDraft.has(i)) c.classList.add(draftPlan.covered.has(i) ? "shipUnder" : "ship", ...(draftPlan.covered.has(i) ? [] : bsShapeClasses(i, bsDraft, n)));
       } else {
         const shot = shotMap[i];
         if(shot){
           if(shot.hit){
             if(shot.sunk){
-              c.classList.add("sunk", ...bsShapeClasses(i, sunkCellShip[i] || new Set(), n));
+              if(wreckPlan.covered.has(i)) c.classList.add("sunkUnder");
+              else c.classList.add("sunk", ...bsShapeClasses(i, sunkCellShip[i] || new Set(), n));
               c.innerHTML = `<span class="bsIco">🔥</span>` + bsShooterBadge(shot);
             } else {
               c.classList.add("hit");
@@ -144,13 +290,17 @@ function renderBattleship(){
           c.disabled = true;
           if(shot.by_name) c.title = shot.by_name;
         } else {
-          if(admin && adminShipSet && adminShipSet.has(i)) c.classList.add("ship-faint"); // l'admin voit ses bateaux
+          if(admin && adminShipSet && adminShipSet.has(i) && !ghostPlan.covered.has(i)) c.classList.add("ship-faint");
           c.onclick = () => bsFire(i);
           c.disabled = !(bs.live && bsMyTorp() > 0);
         }
       }
       board.appendChild(c);
     }
+    bsAppendSkins(board, draftPlan.plans, "fleet");
+    bsAppendSkins(board, wreckPlan.plans, "wreck");
+    bsAppendSkins(board, ghostPlan.plans, "ghost");
+
     if(inPrep){ bsBindPaint(board, n); bsUpdateShipPreview(); }
     else { board.onpointerdown = board.onpointermove = board.onpointerup = board.onpointercancel = null; board.style.touchAction = ""; }
   }
@@ -171,6 +321,8 @@ function bsBindPaint(board, n){
     const cell = e.target.closest(".bsCell");
     if(!cell) return;
     e.preventDefault();
+    // Pendant le trait : on retire les skins pour peindre sur les coques brutes
+    board.querySelectorAll(".bsSkin").forEach(x => x.remove());
     const i = +cell.dataset.cell;
     bsPaint = { mode: bsDraft.has(i) ? "del" : "add" }; // repasser sur un bateau = gommer
     bsPaintCell(i, n);
@@ -182,7 +334,12 @@ function bsBindPaint(board, n){
     const cell = el && el.closest ? el.closest(".bsCell") : null;
     if(cell && cell.parentElement === board) bsPaintCell(+cell.dataset.cell, n);
   };
-  const end = () => { if(bsPaint){ bsPaint = null; bsUpdateShipPreview(); } };
+  const end = () => {
+    if(bsPaint){
+      bsPaint = null;
+      renderBattleship(); // reconstruit la grille avec les skins de bateaux
+    }
+  };
   board.onpointerup = end;
   board.onpointercancel = end;
 }
@@ -191,14 +348,14 @@ function bsPaintCell(i, n){
   bsDraftDirty = true;
   if(bsPaint.mode === "add") bsDraft.add(i); else bsDraft.delete(i);
   // Met à jour les classes en place (pas de re-render → fluide sous le doigt)
-  const board = $("bsBoard");
-  [...board.children].forEach((el, idx) => {
-    el.classList.remove("ship", "cUp", "cDown", "cLeft", "cRight");
+  document.querySelectorAll("#bsBoard .bsCell").forEach(el => {
+    const idx = +el.dataset.cell;
+    el.classList.remove("ship", "shipUnder", "cUp", "cDown", "cLeft", "cRight");
     if(bsDraft.has(idx)) el.classList.add("ship", ...bsShapeClasses(idx, bsDraft, n));
   });
 }
 
-// Aperçu de la flotte : mini-silhouette de chaque bateau détecté
+// Aperçu de la flotte : mini-silhouette + skin de chaque bateau détecté
 function bsUpdateShipPreview(){
   const box = $("bsShipPreview");
   if(!box) return;
@@ -208,7 +365,8 @@ function bsUpdateShipPreview(){
     box.innerHTML = `<span class="empty">Aucun bateau pour l'instant — dessine sur la grille 🎨</span>`;
     return;
   }
-  box.innerHTML = groups.map((g, gi) => {
+  box.innerHTML = groups.map(g => {
+    const info = bsSkinInfo(g.length);
     const rows = g.map(c => Math.floor(c / n)), cols = g.map(c => c % n);
     const r0 = Math.min(...rows), c0 = Math.min(...cols);
     const h = Math.max(...rows) - r0 + 1, w = Math.max(...cols) - c0 + 1;
@@ -217,7 +375,7 @@ function bsUpdateShipPreview(){
     for(let i = 0; i < w * h; i++) cellsHtml += `<span class="miniCell${set.has(i) ? " on" : ""}"></span>`;
     return `<div class="miniShip">
       <div class="miniShipGrid" style="grid-template-columns:repeat(${w},10px)">${cellsHtml}</div>
-      <span>🚢 ${g.length} case${g.length > 1 ? "s" : ""}</span>
+      <span>${info.emoji} ${info.name} · ${g.length}</span>
     </div>`;
   }).join("");
 }
@@ -245,7 +403,7 @@ function bsAnimateResult(cell, res){
   const el = board ? board.querySelector(`.bsCell[data-cell="${cell}"]`) : null;
   if(res && res.sunk){
     if(board){ board.classList.remove("shakeHard"); void board.offsetWidth; board.classList.add("shakeHard"); }
-    const sunkCells = [...document.querySelectorAll(".bsCell.sunk")];
+    const sunkCells = [...document.querySelectorAll(".bsCell.sunk, .bsCell.sunkUnder")];
     sunkCells.forEach((c, i) => { c.style.animationDelay = (i * 45) + "ms"; c.classList.add("boom"); });
     setTimeout(() => { sunkCells.forEach(c => { c.classList.remove("boom"); c.style.animationDelay = ""; }); if(board) board.classList.remove("shakeHard"); }, 1000);
   } else if(res && res.hit){
@@ -272,7 +430,13 @@ async function bsSaveShips(){
   const groups = bsGroups([...bsDraft], n);
   await sb.from("bs_ships").delete().gte("id", 0);
   if(groups.length){
-    const rows = groups.map((cells, idx) => ({ name: `Bateau ${idx + 1} (${cells.length})`, cells }));
+    const counts = {};
+    const rows = groups.map(cells => {
+      const info = bsSkinInfo(cells.length);
+      counts[info.name] = (counts[info.name] || 0) + 1;
+      const name = counts[info.name] > 1 ? `${info.name} ${counts[info.name]}` : info.name;
+      return { name, cells };
+    });
     const { error } = await sb.from("bs_ships").insert(rows);
     if(error){ alert("Enregistrement impossible : " + error.message); return; }
   }

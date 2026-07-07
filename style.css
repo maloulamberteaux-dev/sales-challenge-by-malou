@@ -106,6 +106,14 @@ textarea{min-height:170px;line-height:1.4}
 .bsCell.ship.cRight::after,.bsCell.sunk.cRight::after{content:"";position:absolute;top:22%;bottom:22%;right:-8px;width:10px;background:var(--hull);z-index:1}
 .bsCell.ship.cDown::before,.bsCell.sunk.cDown::before{content:"";position:absolute;left:22%;right:22%;bottom:-8px;height:10px;background:var(--hull);z-index:1}
 .bsCell.ship-faint{background:radial-gradient(circle at 40% 35%, #eaf6ff, #cbe8fd);box-shadow:inset 0 0 0 3px #7b2cff55}
+/* Cases sous un skin de bateau : on laisse le SVG faire le visuel */
+.bsCell.shipUnder{background:#47556922;border-color:#47556944}
+.bsCell.sunkUnder{background:#a9153833;border-color:#a9153855}
+/* Skins de bateaux (SVG posés par-dessus la grille) */
+.bsSkin{position:relative;pointer-events:none;z-index:2;min-height:0;min-width:0}
+.bsSkin.fleet{filter:drop-shadow(0 4px 6px #00000033)}
+.bsSkin.wreck{filter:drop-shadow(0 3px 8px #7a102466);animation:fadeUp .4s ease}
+.bsSkin.ghost{opacity:.32}
 /* Badge avatar du tireur sur les cases révélées */
 .bsAv{position:absolute;bottom:2px;right:2px;width:42%;max-width:22px;min-width:13px;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 5px #00000055;object-fit:cover;background:#fff;pointer-events:none;z-index:3}
 span.bsAv{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff2e9f,#7b2cff);color:#fff;font-size:10px;font-weight:900}
@@ -122,6 +130,14 @@ span.bsAv{display:flex;align-items:center;justify-content:center;background:line
 .distRow .distName{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
 .distRow .chip{flex:none}
 .distRow button{width:auto!important;margin:0!important;flex:none}
+/* 💰 Gains de la partie (visible par tous) */
+.bsWinners{margin-top:14px;background:linear-gradient(135deg,#fff6d8,#ffeef9);border:2px solid var(--gold);border-radius:var(--r-md);padding:14px;display:grid;gap:10px;animation:fadeUp .35s ease}
+.bsWinTitle{font-weight:900;text-align:center;color:#7a5a00}
+.bsWinRow{display:flex;align-items:center;gap:10px;background:#ffffffcc;border-radius:99px;padding:6px 12px 6px 6px;font-weight:800}
+.bsWinRow strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bsWinShips{font-size:13px;color:var(--ink2);flex:none}
+.chip.gold{background:linear-gradient(135deg,#ffd65a,#ffb347);border-color:#e8b33c;color:#5a3d00;font-weight:900}
+.pAvatar.mini{width:30px;height:30px;font-size:13px}
 /* Animations de combat */
 @keyframes bsBoom{0%{transform:scale(1)}25%{transform:scale(1.55);filter:brightness(2)}55%{transform:scale(.9)}100%{transform:scale(1)}}
 .bsCell.boom{animation:bsBoom .55s ease;z-index:3;box-shadow:0 0 22px 6px #ff7a3daa}
