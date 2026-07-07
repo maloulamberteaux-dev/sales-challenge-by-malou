@@ -1,5 +1,17 @@
 let authLanded = false; // a-t-on déjà placé l'utilisateur sur sa page d'accueil ?
 
+// Indique dans l'en-tête quelles parties sont en cours (à la place de "Synchronisé")
+function updateGameStatus(){
+  const el = $("syncStatus");
+  if(!el) return;
+  const live = [];
+  if(typeof who !== "undefined" && who && who.live) live.push("🎭 Qui suis-je");
+  if(typeof bingoSettings !== "undefined" && bingoSettings && bingoSettings.active) live.push("💜 Bingo");
+  if(typeof bs !== "undefined" && bs && bs.live) live.push("🚢 Touché-coulé");
+  el.textContent = live.length ? "🔴 En cours : " + live.join(" · ") : "💤 Aucune partie en cours";
+  el.classList.toggle("statusLive", live.length > 0);
+}
+
 function showPage(p){
   document.querySelectorAll(".page").forEach(e => e.classList.add("hidden"));
   const el = $(p);

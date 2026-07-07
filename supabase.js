@@ -7,7 +7,6 @@ async function initSupabase(){
   }
 
   sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-  $("syncStatus").textContent = "✅ En ligne — que la partie commence !";
 
   // Données de jeu partagées (accessibles connecté ou non)
   await loadExcludedNames();
@@ -15,6 +14,7 @@ async function initSupabase(){
   await loadBingoSettings();
   await loadBattleship();
   await loadPlayers();
+  updateGameStatus();
 
   // Réagit aux connexions / déconnexions Google
   sb.auth.onAuthStateChange((_event, session) => handleSession(session));
@@ -114,6 +114,6 @@ async function saveGame(id, data){
     alert("Sauvegarde impossible : " + error.message);
     return false;
   }
-  $("syncStatus").textContent = "✅ Synchronisé";
+  if(typeof updateGameStatus === "function") updateGameStatus();
   return true;
 }
