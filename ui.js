@@ -12,6 +12,9 @@ window.showPage = showPage;
 function renderAuth(){
   const loggedIn = !!currentUser;
 
+  // Déconnecté → la landing est le héros de la page, on masque l'en-tête (doublon)
+  document.querySelector(".hero").classList.toggle("hidden", !loggedIn);
+
   // En-tête : bouton connexion vs bloc utilisateur + déconnexion
   $("loginBtn").classList.toggle("hidden", loggedIn);
   $("logoutBtn").classList.toggle("hidden", !loggedIn);

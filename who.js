@@ -85,9 +85,14 @@ function renderWho(){
     $("whoImg").style.display = "none";
     $("tiles").style.display = "none";
     $("placeholder").style.display = "block";
-    $("placeholder").textContent = !canSee
-      ? "🎮 L'admin prépare la partie mystère... reste connecté(e) !"
-      : (admin ? "📸 Ajoute une photo mystère pour préparer la partie" : "📸 La photo mystère arrive... prépare-toi !");
+    if(!canSee){
+      // Joueur en attente → roue animée
+      $("placeholder").innerHTML = `<div class="spinner"><span>🎭</span></div><div>L'admin prépare la partie mystère...<br>reste connecté(e) !</div>`;
+    } else {
+      $("placeholder").textContent = admin
+        ? "📸 Ajoute une photo mystère pour préparer la partie"
+        : "📸 La photo mystère arrive... prépare-toi !";
+    }
   }
 
   // Message d'ambiance selon la progression / le vainqueur

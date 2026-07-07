@@ -14,6 +14,7 @@ function renderBingoAvailability(){
   $("bingoWaitTxt").textContent = admin
     ? "Règle la taille, le gain et les missions dans le panneau, puis lance la partie 🚀"
     : "L'admin prépare la prochaine partie... reste connecté(e) 🔥";
+  $("bingoSpinner").classList.toggle("hidden", admin); // roue d'attente pour les joueurs
   $("launchBingo").classList.toggle("hidden", active);
   $("endBingo").classList.toggle("hidden", !active);
   $("bingoLiveChip").textContent = active ? "🟢 Partie en cours" : "💤 Aucune partie";
