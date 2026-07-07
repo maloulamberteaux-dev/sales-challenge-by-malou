@@ -13,6 +13,7 @@ async function loadWho(){
   }
   if(data?.data){
     who = data.data;
+    if(!who.reward) who.reward = "20 €"; // rétro-compat : anciennes parties sans récompense
   } else {
     await saveWho();
   }

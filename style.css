@@ -179,9 +179,10 @@ button.terminatePulse{background:linear-gradient(135deg,#ff2e9f,#7b2cff)!importa
 
 /* ---------- Auth / header ---------- */
 .authArea{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.userBox{display:flex;align-items:center;gap:8px;background:var(--soft);border:2px solid var(--softline);border-radius:99px;padding:4px 12px 4px 4px;font-weight:800}
-#userAvatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 2px 6px #7b2cff33}
-.badge{background:var(--grad);color:#fff;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:4px}
+.userBox{display:flex;align-items:center;gap:8px;background:var(--soft);border:2px solid var(--softline);border-radius:99px;padding:4px 12px 4px 4px;font-weight:800;max-width:100%;min-width:0}
+#userName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+#userAvatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 2px 6px #7b2cff33;flex:none}
+.badge{background:var(--grad);color:#fff;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:4px;flex:none;white-space:nowrap}
 button.ghost.testOn{background:var(--grad)!important;color:#fff!important;border-color:transparent!important}
 
 /* ---------- Écran de connexion ---------- */
@@ -207,9 +208,10 @@ button.google:hover{border-color:#ff87d1!important}
 @keyframes loadDots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}100%{content:""}}
 .waitBox h3{font-size:26px;margin:12px 0 4px}
 .waitBox p{font-weight:700;color:var(--ink2);line-height:1.5}
-.liveRow{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.panel .liveRow .chip{flex:none}
-.panel .liveRow button{width:auto;flex:1;margin-top:0}
+.liveRow{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.panel .liveRow .chip{flex:0 0 auto}
+/* Le bouton d'action passe sur sa propre ligne, pleine largeur (plus de texte coupé) */
+.panel .liveRow button{flex:1 0 100%;width:100%;margin:0;white-space:nowrap}
 
 /* ---------- Landing page (hero sombre + verre) ---------- */
 #gate{background:linear-gradient(140deg,#1e0a3c 0%,#43109b 42%,#a3169e 78%,#ff2e9f 115%);border:3px solid #ffffff2b;color:#fff;overflow:hidden;position:relative;padding:0}
