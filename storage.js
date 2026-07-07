@@ -4,6 +4,14 @@ let admin = false;        // admin EFFECTIF (peut être bridé par le mode "vue 
 let realAdmin = false;    // vrai statut admin (email dans window.ADMIN_EMAILS)
 let viewAsPlayer = localStorage.getItem("viewAsPlayer") === "1"; // test : admin qui se voit en joueur
 let excludedNames = new Set(); // noms d'affichage des comptes de test (rempli au démarrage)
+let adminNames = new Set();    // noms d'affichage des admins (hors classement)
+
+function isAdminEmail(email){
+  return (window.ADMIN_EMAILS || []).map(e => String(e).toLowerCase()).includes(String(email || "").toLowerCase());
+}
+function isAdminName(name){ return adminNames.has(name); }
+// Ne figure PAS dans les classements / gains : admin ou compte de test
+function isNonCompeting(name){ return excludedNames.has(name) || adminNames.has(name); }
 
 // Bascule "voir en tant que joueur" (seulement pour un vrai admin, propre à ce navigateur)
 function setViewAsPlayer(v){

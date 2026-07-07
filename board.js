@@ -8,7 +8,7 @@ async function loadLeaderboard(){
     return;
   }
   const agg = {};
-  (data || []).filter(r => !isExcludedName(r.player)).forEach(r => {
+  (data || []).filter(r => !isNonCompeting(r.player)).forEach(r => {
     const g = agg[r.game] || (agg[r.game] = {});
     g[r.player] = (g[r.player] || 0) + 1;
   });
