@@ -4,8 +4,10 @@ let bs = {live:false, grid:10, reward:"10 €", started_at:"", ships_total:0};
 let bsShots = [];          // tirs (public)
 let bsTorp = [];           // torpilles par joueur (public)
 let bsShipsAdmin = [];     // bateaux (chargés uniquement si admin)
+let bsPlayersMap = {};     // email -> {name, avatar} pour les badges tireurs
 let bsDraft = new Set();   // cases dessinées par l'admin (préparation)
 let bsDraftDirty = false;  // l'admin est en train de dessiner ?
+let bsPaint = null;        // stroke en cours {mode:"add"|"del"} pendant le glisser
 
 function bsMyTorp(){
   const e = (currentUser?.email || "").toLowerCase();
@@ -18,6 +20,10 @@ async function loadBattleship(){
   bs = st.data?.data || {live:false, grid:10, reward:"10 €", started_at:"", ships_total:0};
   bsShots = (await sb.from("bs_shots").select("*")).data || [];
   bsTorp  = (await sb.from("bs_torpedoes").select("*")).data || [];
+  bsPlayersMap = {};
+  ((await sb.from("players").select("email,name,avatar")).data || []).forEach(p => {
+    bsPlayersMap[(p.email || "").toLowerCase()] = {name:p.name, avatar:p.avatar};
+  });
   if(admin){
     bsShipsAdmin = (await sb.from("bs_ships").select("*")).data || [];
     if(!bsDraftDirty) bsDraft = new Set(bsShipsAdmin.flatMap(s => s.cells || []));
@@ -50,20 +56,49 @@ function bsGroups(cells, n){
   return groups;
 }
 
+// Classes de forme "coque" : aplatit les coins du côté des cases connectées
+function bsShapeClasses(cell, set, n){
+  const cls = [];
+  const r = Math.floor(cell / n), c = cell % n;
+  if(r > 0 && set.has(cell - n)) cls.push("cUp");
+  if(r < n - 1 && set.has(cell + n)) cls.push("cDown");
+  if(c > 0 && set.has(cell - 1)) cls.push("cLeft");
+  if(c < n - 1 && set.has(cell + 1)) cls.push("cRight");
+  return cls;
+}
+
+// Badge avatar du tireur (photo Google ou initiale)
+function bsShooterBadge(shot){
+  const p = bsPlayersMap[(shot.by_email || "").toLowerCase()];
+  const name = shot.by_name || p?.name || "";
+  if(p?.avatar) return `<img class="bsAv" src="${esc(p.avatar)}" alt="" title="${esc(name)}"/>`;
+  if(name) return `<span class="bsAv txt" title="${esc(name)}">${esc(name[0].toUpperCase())}</span>`;
+  return "";
+}
+
 function renderBattleship(){
+  if(bsPaint) return; // ne pas re-rendre en plein coup de pinceau
   const n = bs.grid || 10;
-  const finished = false;
   const inPrep = admin && !bs.live;
   const shotMap = {}; bsShots.forEach(s => shotMap[s.cell] = s);
   const adminShipSet = admin ? new Set(bsShipsAdmin.flatMap(s => s.cells || [])) : null;
 
-  // Compteurs / bandeaux
-  const sunkCount = admin ? bsShipsAdmin.filter(s => s.sunk).length : bsShots.filter(s => s.sunk).length; // approx joueur
+  // Cases par bateau coulé (pour dessiner des coques connectées)
+  const sunkByShip = {};
+  bsShots.forEach(s => { if(s.sunk && s.ship_id != null){ (sunkByShip[s.ship_id] = sunkByShip[s.ship_id] || new Set()).add(s.cell); } });
+  const sunkCellShip = {};
+  Object.entries(sunkByShip).forEach(([id, set]) => set.forEach(c => sunkCellShip[c] = set));
+
+  // Stats visibles par tous
   const hits = bsShots.filter(s => s.hit).length;
+  const miss = bsShots.length - hits;
+  const sunkCount = Object.keys(sunkByShip).length;
+  const totalShips = admin ? (bsShipsAdmin.length || bs.ships_total || 0) : (bs.ships_total || 0);
   if($("bsTorpCount")) $("bsTorpCount").textContent = bsMyTorp();
   if($("bsHits")) $("bsHits").textContent = hits;
-  if($("bsShipsLeft")) $("bsShipsLeft").textContent = admin ? Math.max(0, (bs.ships_total || bsShipsAdmin.length) - sunkCount) : (bs.ships_total || "?");
-  if($("bsRewardStat")) $("bsRewardStat").textContent = bs.reward || "10 €";
+  if($("bsMiss")) $("bsMiss").textContent = miss;
+  if($("bsShipsLeft")) $("bsShipsLeft").textContent = totalShips ? Math.max(0, totalShips - sunkCount) : "?";
+  if($("bsFleetBar")) $("bsFleetBar").style.width = totalShips ? Math.round(sunkCount / totalShips * 100) + "%" : "0%";
   if($("bsRewardChip")) $("bsRewardChip").textContent = "🏆 " + (bs.reward || "10 €") + " le coup fatal";
 
   // Panneaux admin : préparation (dessin/réglages) vs partie (distribution/actions)
@@ -83,19 +118,29 @@ function renderBattleship(){
   const board = $("bsBoard");
   if(board && !showWait){
     board.style.gridTemplateColumns = `repeat(${n},1fr)`;
+    board.classList.toggle("prep", inPrep);
     board.innerHTML = "";
     for(let i = 0; i < n * n; i++){
       const c = document.createElement("button");
       c.className = "bsCell";
       c.dataset.cell = i;
       if(inPrep){
-        if(bsDraft.has(i)) c.classList.add("ship");
-        c.onclick = () => bsToggleDraft(i);
+        if(bsDraft.has(i)) c.classList.add("ship", ...bsShapeClasses(i, bsDraft, n));
       } else {
         const shot = shotMap[i];
         if(shot){
-          if(shot.hit){ c.classList.add(shot.sunk ? "sunk" : "hit"); c.textContent = shot.sunk ? "🔥" : "🎯"; }
-          else { c.classList.add("miss"); c.textContent = "•"; }
+          if(shot.hit){
+            if(shot.sunk){
+              c.classList.add("sunk", ...bsShapeClasses(i, sunkCellShip[i] || new Set(), n));
+              c.innerHTML = `<span class="bsIco">🔥</span>` + bsShooterBadge(shot);
+            } else {
+              c.classList.add("hit");
+              c.innerHTML = `<span class="bsIco">🎯</span>` + bsShooterBadge(shot);
+            }
+          } else {
+            c.classList.add("miss");
+            c.innerHTML = `<span class="bsIco">•</span>` + bsShooterBadge(shot);
+          }
           c.disabled = true;
           if(shot.by_name) c.title = shot.by_name;
         } else {
@@ -106,21 +151,75 @@ function renderBattleship(){
       }
       board.appendChild(c);
     }
+    if(inPrep){ bsBindPaint(board, n); bsUpdateShipPreview(); }
+    else { board.onpointerdown = board.onpointermove = board.onpointerup = board.onpointercancel = null; board.style.touchAction = ""; }
   }
 
   // Message d'état
   if($("bsMsg") && !$("bsMsg").dataset.sticky){
-    if(inPrep) $("bsMsg").textContent = "🎨 Clique les cases pour dessiner tes bateaux, puis enregistre-les.";
+    if(inPrep) $("bsMsg").textContent = "🎨 Reste appuyé et glisse sur la grille pour dessiner tes bateaux.";
     else if(showWait) $("bsMsg").textContent = "";
     else if(bsMyTorp() > 0) $("bsMsg").textContent = `🚀 Tu as ${bsMyTorp()} torpille(s) — vise un bateau !`;
     else $("bsMsg").textContent = "🚀 Pas de torpille — vends un abo pour en gagner une !";
   }
 }
 
-function bsToggleDraft(i){
+// --- Dessin des bateaux au glisser (pointeur maintenu) ---
+function bsBindPaint(board, n){
+  board.style.touchAction = "none"; // pas de scroll pendant le dessin
+  board.onpointerdown = e => {
+    const cell = e.target.closest(".bsCell");
+    if(!cell) return;
+    e.preventDefault();
+    const i = +cell.dataset.cell;
+    bsPaint = { mode: bsDraft.has(i) ? "del" : "add" }; // repasser sur un bateau = gommer
+    bsPaintCell(i, n);
+    try { board.setPointerCapture(e.pointerId); } catch {}
+  };
+  board.onpointermove = e => {
+    if(!bsPaint) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest ? el.closest(".bsCell") : null;
+    if(cell && cell.parentElement === board) bsPaintCell(+cell.dataset.cell, n);
+  };
+  const end = () => { if(bsPaint){ bsPaint = null; bsUpdateShipPreview(); } };
+  board.onpointerup = end;
+  board.onpointercancel = end;
+}
+
+function bsPaintCell(i, n){
   bsDraftDirty = true;
-  if(bsDraft.has(i)) bsDraft.delete(i); else bsDraft.add(i);
-  renderBattleship();
+  if(bsPaint.mode === "add") bsDraft.add(i); else bsDraft.delete(i);
+  // Met à jour les classes en place (pas de re-render → fluide sous le doigt)
+  const board = $("bsBoard");
+  [...board.children].forEach((el, idx) => {
+    el.classList.remove("ship", "cUp", "cDown", "cLeft", "cRight");
+    if(bsDraft.has(idx)) el.classList.add("ship", ...bsShapeClasses(idx, bsDraft, n));
+  });
+}
+
+// Aperçu de la flotte : mini-silhouette de chaque bateau détecté
+function bsUpdateShipPreview(){
+  const box = $("bsShipPreview");
+  if(!box) return;
+  const n = bs.grid || 10;
+  const groups = bsGroups([...bsDraft], n);
+  if(!groups.length){
+    box.innerHTML = `<span class="empty">Aucun bateau pour l'instant — dessine sur la grille 🎨</span>`;
+    return;
+  }
+  box.innerHTML = groups.map((g, gi) => {
+    const rows = g.map(c => Math.floor(c / n)), cols = g.map(c => c % n);
+    const r0 = Math.min(...rows), c0 = Math.min(...cols);
+    const h = Math.max(...rows) - r0 + 1, w = Math.max(...cols) - c0 + 1;
+    const set = new Set(g.map(c => (Math.floor(c / n) - r0) * w + (c % n - c0)));
+    let cellsHtml = "";
+    for(let i = 0; i < w * h; i++) cellsHtml += `<span class="miniCell${set.has(i) ? " on" : ""}"></span>`;
+    return `<div class="miniShip">
+      <div class="miniShipGrid" style="grid-template-columns:repeat(${w},10px)">${cellsHtml}</div>
+      <span>🚢 ${g.length} case${g.length > 1 ? "s" : ""}</span>
+    </div>`;
+  }).join("");
 }
 
 // 🔥 Tir d'un joueur : passe par la fonction serveur sécurisée

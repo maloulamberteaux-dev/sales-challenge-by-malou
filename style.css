@@ -86,15 +86,37 @@ textarea{min-height:170px;line-height:1.4}
 .msg{text-align:center;font-size:24px;font-weight:900;margin-top:14px;color:var(--ink2)}
 
 /* ---------- Touché-coulé ---------- */
-.bsBoard{display:grid;gap:5px;margin-top:14px;background:#cdeafe;padding:8px;border-radius:16px;border:3px solid #a9d6f5}
-.bsCell{aspect-ratio:1;min-height:0;padding:0;border-radius:8px;border:2px solid #b9def7;background:radial-gradient(circle at 40% 35%, #eaf6ff, #cbe8fd);color:#fff;font-size:clamp(12px,2.2vw,22px);box-shadow:none;transition:transform .1s,filter .15s;display:flex;align-items:center;justify-content:center}
-.bsCell:not(:disabled):hover{transform:scale(1.08);filter:brightness(1.05);border-color:#ff87d1}
+.bsBoard{display:grid;gap:6px;margin-top:14px;background:linear-gradient(160deg,#bfe3ff,#8ec9f5);padding:10px;border-radius:16px;border:3px solid #a9d6f5;position:relative}
+.bsBoard.prep{cursor:crosshair}
+.bsCell{position:relative;aspect-ratio:1;min-height:0;padding:0;border-radius:10px;border:2px solid #b9def7;background:radial-gradient(circle at 40% 35%, #eaf6ff, #cbe8fd);color:#fff;font-size:clamp(12px,2.2vw,22px);box-shadow:none;transition:transform .1s,filter .15s;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
+.bsCell:not(:disabled):hover{transform:scale(1.08);filter:brightness(1.05);border-color:#ff87d1;z-index:2}
+.bsBoard.prep .bsCell:hover{transform:none}
 .bsCell:disabled{cursor:default}
+.bsCell .bsIco{pointer-events:none;position:relative;z-index:2}
 .bsCell.miss{background:#dfeef9;color:#7fa9c9;box-shadow:inset 0 0 0 3px #ffffff}
 .bsCell.hit{background:linear-gradient(135deg,#ff8a3d,#ff2e6a);border-color:transparent;animation:popIn .3s ease}
-.bsCell.sunk{background:linear-gradient(135deg,#c81d3c,#7a0f24);border-color:#ffd65a;animation:popIn .3s ease}
-.bsCell.ship{background:linear-gradient(135deg,#6b7280,#374151);border-color:#1f2937}
+/* Coques de bateaux : pilules connectées (les coins s'aplatissent côté cases voisines) */
+.bsCell.ship{--hull:#475569;background:var(--hull);border-color:#334155;border-radius:16px}
+.bsCell.sunk{--hull:#a91538;background:var(--hull);border-color:#ffd65a;border-radius:16px;animation:popIn .3s ease}
+.bsCell.cUp{border-top-left-radius:4px;border-top-right-radius:4px}
+.bsCell.cDown{border-bottom-left-radius:4px;border-bottom-right-radius:4px}
+.bsCell.cLeft{border-top-left-radius:4px;border-bottom-left-radius:4px}
+.bsCell.cRight{border-top-right-radius:4px;border-bottom-right-radius:4px}
+/* Ponts qui comblent l'espace entre deux cases d'un même bateau */
+.bsCell.ship.cRight::after,.bsCell.sunk.cRight::after{content:"";position:absolute;top:22%;bottom:22%;right:-8px;width:10px;background:var(--hull);z-index:1}
+.bsCell.ship.cDown::before,.bsCell.sunk.cDown::before{content:"";position:absolute;left:22%;right:22%;bottom:-8px;height:10px;background:var(--hull);z-index:1}
 .bsCell.ship-faint{background:radial-gradient(circle at 40% 35%, #eaf6ff, #cbe8fd);box-shadow:inset 0 0 0 3px #7b2cff55}
+/* Badge avatar du tireur sur les cases révélées */
+.bsAv{position:absolute;bottom:2px;right:2px;width:42%;max-width:22px;min-width:13px;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 5px #00000055;object-fit:cover;background:#fff;pointer-events:none;z-index:3}
+span.bsAv{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff2e9f,#7b2cff);color:#fff;font-size:10px;font-weight:900}
+.bsCell.miss .bsAv{opacity:.8;filter:saturate(.6)}
+/* Aperçu de la flotte (panneau admin) */
+.shipPreview{display:flex;flex-wrap:wrap;gap:12px;background:var(--soft);border:2px solid var(--softline);border-radius:14px;padding:10px;min-height:48px;align-items:center}
+.shipPreview .empty{font-size:12.5px;font-weight:700;color:var(--ink2);margin:auto;text-align:center}
+.miniShip{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--ink2)}
+.miniShipGrid{display:grid;gap:2px}
+.miniCell{width:10px;height:10px;border-radius:3px;background:#e4d5f5;opacity:.35}
+.miniCell.on{background:#475569;opacity:1;border-radius:4px}
 .distList{display:grid;gap:8px;margin:8px 0}
 .distRow{display:flex;align-items:center;gap:8px;background:var(--soft);border:2px solid var(--softline);border-radius:14px;padding:6px 8px 6px 12px;font-weight:800}
 .distRow .distName{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
@@ -108,6 +130,11 @@ textarea{min-height:170px;line-height:1.4}
 @keyframes bsShake{0%,100%{transform:translate(0,0)}15%{transform:translate(-5px,3px)}30%{transform:translate(5px,-3px)}45%{transform:translate(-4px,-3px)}60%{transform:translate(4px,3px)}75%{transform:translate(-3px,2px)}}
 .bsBoard.shake{animation:bsShake .45s ease}
 .bsBoard.shakeHard{animation:bsShake .5s ease 2}
+
+/* ---------- Disposition du bingo (éditeur admin) ---------- */
+.layoutGrid{display:grid;gap:5px;margin:8px 0}
+.layoutGrid select{width:100%;min-width:0;padding:6px 3px;font-size:11px;font-weight:700;border-radius:8px;border:2px solid var(--line);color:var(--ink);text-overflow:ellipsis;white-space:nowrap;overflow:hidden;cursor:pointer}
+.layoutGrid select:hover{border-color:#ff87d1}
 
 /* ---------- Qui suis-je ---------- */
 .photo{position:relative;aspect-ratio:1/1;border-radius:22px;overflow:hidden;background:#fff0fb;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;text-align:center;padding:10px}
@@ -194,7 +221,7 @@ button.google:hover{border-color:#ff87d1!important}
 .demoToast{background:#ffffff1a;border:1px solid #ffffff33;border-radius:99px;padding:10px 18px;font-weight:800;font-size:14px;color:#fff;backdrop-filter:blur(6px);transform:rotate(-2deg);animation:floaty 4s ease 1s infinite}
 
 /* Cartes de jeux (verre) */
-.landCards{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:36px}
+.landCards{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:36px}
 .landCard{background:#ffffff12;border:1px solid #ffffff2b;border-radius:20px;padding:20px;backdrop-filter:blur(6px);transition:background .25s,transform .25s}
 .landCard:hover{background:#ffffff22;transform:translateY(-6px)}
 .landCard .ic{font-size:34px;line-height:1}
@@ -203,6 +230,7 @@ button.google:hover{border-color:#ff87d1!important}
 
 /* ---------- Classement ---------- */
 .grid2.even{grid-template-columns:1fr 1fr}
+.boardGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
 .boardCol{background:#fff;border-radius:24px;padding:18px}
 .boardCol h3{text-align:center;font-size:22px;margin:4px 0 14px}
 .boardList{display:grid;gap:10px}

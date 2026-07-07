@@ -4,7 +4,7 @@ async function loadLeaderboard(){
   if(!sb) return;
   let {data, error} = await sb.from("results").select("game,player,won_at");
   if(error){
-    $("boardWho").innerHTML = $("boardBingo").innerHTML = "<p>⚠️ Table <b>results</b> absente — lance le SQL de setup.</p>";
+    $("boardWho").innerHTML = $("boardBingo").innerHTML = $("boardBattleship").innerHTML = "<p>⚠️ Table <b>results</b> absente — lance le SQL de setup.</p>";
     return;
   }
   const agg = {};
@@ -14,6 +14,7 @@ async function loadLeaderboard(){
   });
   $("boardWho").innerHTML = renderBoard(agg.who);
   $("boardBingo").innerHTML = renderBoard(agg.bingo);
+  $("boardBattleship").innerHTML = renderBoard(agg.battleship);
 }
 
 function renderBoard(counts){

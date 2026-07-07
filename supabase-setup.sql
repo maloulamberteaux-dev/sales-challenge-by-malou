@@ -10,6 +10,120 @@ create table if not exists public.bingo_cards (
   updated_at timestamptz default now()
 );
 
+-- 👑 Admins reconnus côté base (pour les RLS des tables protégées)
+create table if not exists public.app_admins(email text primary key);
+insert into public.app_admins(email) values
+  ('malou.lamberteaux@gmail.com'),
+  ('safir@lumeos.pro')
+on conflict do nothing;
+alter table public.app_admins enable row level security; -- aucune policy => verrouillée
+
+create or replace function public.is_app_admin() returns boolean
+  language sql security definer stable set search_path = public as $$
+  select exists(select 1 from public.app_admins a where a.email = (auth.jwt() ->> 'email'));
+$$;
+grant execute on function public.is_app_admin() to anon, authenticated;
+
+-- 🚢 Touché-coulé — bateaux SECRETS (admin-only), tirs et torpilles publics en lecture
+create table if not exists public.bs_ships(
+  id int generated always as identity primary key,
+  name text,
+  cells int[] not null,
+  sunk boolean default false,
+  sunk_by text
+);
+alter table public.bs_ships enable row level security;
+drop policy if exists "bs_ships_admin" on public.bs_ships;
+create policy "bs_ships_admin" on public.bs_ships for all
+  using (public.is_app_admin()) with check (public.is_app_admin());
+
+create table if not exists public.bs_shots(
+  cell int primary key,
+  hit boolean not null,
+  by_name text,
+  by_email text,
+  ship_id int,
+  sunk boolean default false,
+  fired_at timestamptz default now()
+);
+alter table public.bs_shots enable row level security;
+drop policy if exists "bs_shots_read" on public.bs_shots;
+drop policy if exists "bs_shots_admin" on public.bs_shots;
+create policy "bs_shots_read" on public.bs_shots for select using (true);
+create policy "bs_shots_admin" on public.bs_shots for all
+  using (public.is_app_admin()) with check (public.is_app_admin());
+
+create table if not exists public.bs_torpedoes(
+  email text primary key,
+  name text,
+  count int not null default 0
+);
+alter table public.bs_torpedoes enable row level security;
+drop policy if exists "bs_torp_read" on public.bs_torpedoes;
+drop policy if exists "bs_torp_admin" on public.bs_torpedoes;
+create policy "bs_torp_read" on public.bs_torpedoes for select using (true);
+create policy "bs_torp_admin" on public.bs_torpedoes for all
+  using (public.is_app_admin()) with check (public.is_app_admin());
+
+-- Arbitre des tirs : seule cette fonction lit les bateaux (jamais le client)
+create or replace function public.bs_fire(p_cell int)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_email text := auth.jwt() ->> 'email';
+  v_name  text;
+  v_torp  int;
+  v_hit   boolean := false;
+  v_ship  public.bs_ships%rowtype;
+  v_sunk  boolean := false;
+  v_state jsonb;
+  v_round text;
+begin
+  if v_email is null then raise exception 'not_authenticated'; end if;
+  select data into v_state from public.game_state where id = 'battleship';
+  if coalesce((v_state->>'live')::boolean, false) is not true then
+    raise exception 'game_not_live';
+  end if;
+  v_round := coalesce(v_state->>'started_at', '');
+  select name into v_name from public.players where email = v_email;
+  v_name := coalesce(v_name, v_email);
+  select count into v_torp from public.bs_torpedoes where email = v_email;
+  if coalesce(v_torp, 0) < 1 then raise exception 'no_torpedo'; end if;
+  if exists (select 1 from public.bs_shots where cell = p_cell) then
+    raise exception 'already_fired';
+  end if;
+  select * into v_ship from public.bs_ships where p_cell = any(cells) limit 1;
+  if found then v_hit := true; end if;
+  update public.bs_torpedoes set count = count - 1 where email = v_email;
+  insert into public.bs_shots(cell, hit, by_name, by_email, ship_id)
+    values (p_cell, v_hit, v_name, v_email, case when v_hit then v_ship.id else null end);
+  if v_hit then
+    if (select count(*) from public.bs_shots s where s.ship_id = v_ship.id and s.hit) >= array_length(v_ship.cells, 1) then
+      v_sunk := true;
+      update public.bs_ships set sunk = true, sunk_by = v_name where id = v_ship.id;
+      update public.bs_shots set sunk = true where ship_id = v_ship.id;
+      insert into public.results(game, player, round)
+        values ('battleship', v_name, v_round || ':s' || v_ship.id)
+        on conflict do nothing;
+    end if;
+  end if;
+  return jsonb_build_object('hit', v_hit, 'sunk', v_sunk, 'ship', case when v_sunk then v_ship.name else null end, 'by', v_name);
+end;
+$$;
+grant execute on function public.bs_fire(int) to authenticated;
+
+-- 🔒 Secrets du Qui suis-je (photo originale + réponse) — lisible uniquement par les admins.
+-- Le public ne reçoit qu'un composite (pixels révélés) généré par le navigateur de l'admin.
+create table if not exists public.who_secret(
+  id text primary key,
+  image text,
+  answer text
+);
+alter table public.who_secret enable row level security;
+drop policy if exists "who_secret_admin" on public.who_secret;
+create policy "who_secret_admin" on public.who_secret for all
+  using (public.is_app_admin()) with check (public.is_app_admin());
+
 -- Victoires enregistrées (alimente l'onglet Classement) : 1 ligne par victoire et par manche
 create table if not exists public.results (
   game text not null,
@@ -92,6 +206,14 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.bingo_cards;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.bs_shots;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.bs_torpedoes;
   exception when duplicate_object then null;
   end;
 end $$;
