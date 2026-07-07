@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=9"/>
+  <link rel="stylesheet" href="style.css?v=15"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -22,6 +22,7 @@
             <span id="userName"></span>
             <span id="adminBadge" class="badge hidden">👑 Admin</span>
           </span>
+          <button id="viewToggle" class="ghost small hidden">👀 Vue joueur</button>
           <button id="loginBtn" class="ghost small">🔓 Se connecter avec Google</button>
           <button id="logoutBtn" class="ghost small hidden">Déconnexion</button>
         </div>
@@ -36,6 +37,7 @@
       <button class="tab active" data-page="board">🏆 Classement</button>
       <button class="tab" data-page="who">🎭 Qui suis-je ?</button>
       <button class="tab" data-page="bingo">💜 Bingo</button>
+      <button class="tab" data-page="battleship">🚢 Touché-coulé</button>
     </nav>
 
     <section id="gate" class="card page">
@@ -135,6 +137,8 @@
                 <option value="12">144</option>
                 <option value="15">225</option>
               </select>
+              <label>Flou par-dessus les tuiles</label>
+              <button id="toggleBlur" class="ghost">🌫️ Flou : désactivé</button>
               <label>Photo mystère</label>
               <input id="whoFile" type="file" accept="image/*"/>
               <label>Réponse secrète</label>
@@ -265,6 +269,81 @@
       </div>
     </section>
 
+    <section id="battleship" class="card page hidden">
+      <div class="header">
+        <div>
+          <h2>🚢 Touché-coulé</h2>
+          <p>Chaque abo vendu = une torpille. Coule les bateaux cachés par l'admin — le coup fatal rapporte gros 💰</p>
+        </div>
+      </div>
+      <div class="grid2">
+        <aside class="panel">
+          <div class="playerTag">
+            <span>Tes torpilles 🚀</span>
+            <strong id="bsTorpCount">0</strong>
+          </div>
+
+          <div class="statRow">
+            <div class="stat"><span id="bsHits">0</span><label>touchés 🎯</label></div>
+            <div class="stat"><span id="bsShipsLeft">?</span><label>bateaux restants</label></div>
+            <div class="stat"><span id="bsRewardStat">💰</span><label>à gagner</label></div>
+          </div>
+
+          <div class="adminOnly hidden">
+            <div class="liveRow">
+              <span id="bsLiveChip" class="chip">⚙️ En préparation</span>
+            </div>
+
+            <!-- Préparation : dessin des bateaux + réglages -->
+            <div id="bsSettings">
+              <label>Taille de la grille</label>
+              <select id="bsGrid">
+                <option value="6">6×6</option>
+                <option value="8">8×8</option>
+                <option value="10" selected>10×10</option>
+                <option value="12">12×12</option>
+              </select>
+              <label>Récompense (coup fatal)</label>
+              <input id="bsReward" value="10 €"/>
+              <div class="rules">🎨 Clique les cases de la grille pour dessiner tes bateaux. Chaque groupe de cases collées = 1 bateau.</div>
+              <button id="bsSaveShips">💾 Enregistrer les bateaux</button>
+              <button id="bsClear" class="ghost">🗑️ Tout effacer</button>
+              <button id="bsLaunch">🚀 Lancer la bataille</button>
+            </div>
+
+            <!-- Partie en cours : distribution des torpilles + fin -->
+            <div id="bsActions" class="hidden">
+              <label>Distribuer les torpilles (1 par abo vendu)</label>
+              <div id="bsDistribute" class="distList"></div>
+              <button id="bsStop" class="ghost">🛑 Terminer la bataille</button>
+            </div>
+          </div>
+
+          <div class="rules">
+            🚀 1 abo vendu = 1 torpille<br>
+            🎯 Clique une case pour tirer<br>
+            🔥 Le coup qui coule un bateau gagne la récompense
+          </div>
+        </aside>
+
+        <section class="stage">
+          <div id="bsWait" class="waitBox hidden">
+            <div class="spinner"><span>🚢</span></div>
+            <h3>En attente du lancement</h3>
+            <p class="loadingDots">L'admin prépare la flotte</p>
+          </div>
+          <div id="bsPlay">
+            <div class="stageHead">
+              <h3>🚢 Grille de tir</h3>
+              <span class="chip" id="bsRewardChip">🏆 Coup fatal</span>
+            </div>
+            <div id="bsBoard" class="bsBoard"></div>
+            <div id="bsMsg" class="msg">🚢 En attente...</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
     <section id="admin" class="card page hidden">
       <div class="header">
         <div>
@@ -290,15 +369,16 @@
     </section>
   </main>
 
-  <script src="config.js?v=9"></script>
-  <script src="utils.js?v=9"></script>
-  <script src="storage.js?v=9"></script>
-  <script src="ui.js?v=9"></script>
-  <script src="supabase.js?v=9"></script>
-  <script src="who.js?v=9"></script>
-  <script src="bingo.js?v=9"></script>
-  <script src="board.js?v=9"></script>
-  <script src="history.js?v=9"></script>
-  <script src="app.js?v=9"></script>
+  <script src="config.js?v=15"></script>
+  <script src="utils.js?v=15"></script>
+  <script src="storage.js?v=15"></script>
+  <script src="ui.js?v=15"></script>
+  <script src="supabase.js?v=15"></script>
+  <script src="who.js?v=15"></script>
+  <script src="bingo.js?v=15"></script>
+  <script src="battleship.js?v=15"></script>
+  <script src="board.js?v=15"></script>
+  <script src="history.js?v=15"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

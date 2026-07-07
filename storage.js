@@ -1,7 +1,16 @@
 let currentUser = null;   // objet user Supabase (session Google)
 let currentPlayer = "";   // nom d'affichage servant d'identité de jeu
-let admin = false;        // true si l'email est dans window.ADMIN_EMAILS
+let admin = false;        // admin EFFECTIF (peut être bridé par le mode "vue joueur")
+let realAdmin = false;    // vrai statut admin (email dans window.ADMIN_EMAILS)
+let viewAsPlayer = localStorage.getItem("viewAsPlayer") === "1"; // test : admin qui se voit en joueur
 let excludedNames = new Set(); // noms d'affichage des comptes de test (rempli au démarrage)
+
+// Bascule "voir en tant que joueur" (seulement pour un vrai admin, propre à ce navigateur)
+function setViewAsPlayer(v){
+  viewAsPlayer = v;
+  if(v) localStorage.setItem("viewAsPlayer", "1"); else localStorage.removeItem("viewAsPlayer");
+  admin = realAdmin && !viewAsPlayer;
+}
 
 // Comptes de test : exclus des listes joueurs / vainqueurs / classements
 function isExcludedEmail(email){
@@ -19,9 +28,11 @@ function applySession(session){
     currentPlayer = (meta.full_name || meta.name || currentUser.email || "").trim();
     const email = (currentUser.email || "").toLowerCase();
     const allow = (window.ADMIN_EMAILS || []).map(e => String(e).toLowerCase());
-    admin = allow.includes(email);
+    realAdmin = allow.includes(email);
+    admin = realAdmin && !viewAsPlayer;   // en mode "vue joueur", on se bride volontairement
   } else {
     currentPlayer = "";
+    realAdmin = false;
     admin = false;
   }
 }

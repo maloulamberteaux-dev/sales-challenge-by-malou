@@ -1,4 +1,4 @@
-let who = {subs:0, goal:37, grid:10, blur:18, hidden:[], clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
+let who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:false, hidden:[], clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
 let lastWinnerSeen = null; // pour ne fêter le vainqueur qu'une fois
 
 async function loadWho(){
@@ -53,8 +53,9 @@ function renderWho(){
   let total = n * n;
   who.hidden = who.hidden?.length === total ? who.hidden : Array(total).fill(false);
   const revealed = who.hidden.filter(Boolean).length;
-  const pct = Math.round(revealed / total * 100);
   const finished = !!who.winner && !who.live;
+  const blurOn = !!who.blurEnabled;   // couche de flou par-dessus les tuiles
+  const pct = total ? Math.round(revealed / total * 100) : 0;
   // Les joueurs voient la photo quand la partie est lancée ou terminée ; l'admin voit tout
   const canSee = admin || !!who.live || finished;
 
@@ -71,6 +72,7 @@ function renderWho(){
   // Chip d'état + bouton lancer/arrêter (panneau admin)
   $("whoLiveChip").textContent = who.live ? "🟢 Partie en cours" : (finished ? "🏁 Terminée" : "⚙️ En préparation");
   $("toggleLive").textContent = who.live ? "🛑 Arrêter la partie" : "🚀 Lancer la partie";
+  if($("toggleBlur")) $("toggleBlur").textContent = blurOn ? "🌫️ Flou : activé" : "🌫️ Flou : désactivé";
   // Pendant la partie : on masque les réglages, on ne montre que les actions
   if($("whoSettings")) $("whoSettings").classList.toggle("hidden", !!who.live);
   if($("whoActions")) $("whoActions").classList.toggle("hidden", !who.live);
@@ -78,9 +80,10 @@ function renderWho(){
   if(who.image && canSee){
     $("whoImg").src = who.image;
     $("whoImg").style.display = "block";
-    // Partie terminée → photo entièrement révélée
+    // Les tuiles se révèlent toujours ; le flou (optionnel) se superpose par-dessus
+    const blurAmount = finished ? 0 : Math.max(0, Math.round(20 * (1 - (who.subs || 0) / (who.goal || 37))));
     $("tiles").style.display = finished ? "none" : "grid";
-    $("whoImg").style.filter = finished ? "blur(0px)" : `blur(${who.blur ?? 18}px)`;
+    $("whoImg").style.filter = (blurOn && !finished) ? `blur(${blurAmount}px)` : "none";
     $("placeholder").style.display = "none";
   } else {
     $("whoImg").removeAttribute("src");
@@ -89,7 +92,7 @@ function renderWho(){
     $("placeholder").style.display = "block";
     if(!canSee){
       // Joueur en attente → roue animée
-      $("placeholder").innerHTML = `<div class="spinner"><span>🎭</span></div><div>L'admin prépare la partie mystère...<br>reste connecté(e) !</div>`;
+      $("placeholder").innerHTML = `<div class="spinner"><span>🎭</span></div><div class="loadingDots">L'admin prépare la partie mystère</div>`;
     } else {
       $("placeholder").textContent = admin
         ? "📸 Ajoute une photo mystère pour préparer la partie"
@@ -237,6 +240,10 @@ function bindWhoEvents(){
     who.clue = "💡 Indice : " + ($("whoClueInput").value || "pas encore dévoilé");
     await saveWho();
   };
+  $("toggleBlur").onclick = async () => {
+    who.blurEnabled = !who.blurEnabled;
+    await saveWho();
+  };
   $("toggleAnswer").onclick = () => $("answerBox").classList.toggle("visible");
   $("whoAnswer").oninput = async () => {
     who.answer = $("whoAnswer").value;
@@ -245,7 +252,6 @@ function bindWhoEvents(){
   $("addSub").onclick = async () => {
     who.subs = (who.subs || 0) + 1;
     revealRandom();
-    if(who.subs % 2 === 0) who.blur = Math.max(0, (who.blur ?? 18) - 1);
     await saveWho();
   };
   $("revealOne").onclick = async () => {
@@ -254,7 +260,7 @@ function bindWhoEvents(){
   };
   $("resetWho").onclick = async () => {
     if(!confirm("Réinitialiser complètement le Qui suis-je ?")) return;
-    who = {subs:0, goal:37, grid:10, blur:18, hidden:Array(100).fill(false), clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
+    who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:who.blurEnabled, hidden:Array(100).fill(false), clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
     await saveWho();
   };
 }

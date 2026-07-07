@@ -7,6 +7,7 @@ function showPage(p){
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.page === p));
   if(p === "admin"){ loadUsers(); loadPlayers(); }
   if(p === "board"){ loadLeaderboard(); }
+  if(p === "battleship"){ loadBattleship(); }
 }
 window.showPage = showPage;
 
@@ -21,6 +22,14 @@ function renderAuth(){
   $("loginBtn").classList.toggle("hidden", loggedIn);
   $("logoutBtn").classList.toggle("hidden", !loggedIn);
   $("userBox").classList.toggle("hidden", !loggedIn);
+
+  // Bouton "vue joueur" (uniquement pour un vrai admin, pour tester)
+  const vt = $("viewToggle");
+  if(vt){
+    vt.classList.toggle("hidden", !realAdmin);
+    vt.textContent = viewAsPlayer ? "👑 Repasser admin" : "👀 Vue joueur";
+    vt.classList.toggle("testOn", viewAsPlayer);
+  }
 
   if(loggedIn){
     $("userName").textContent = currentPlayer;
@@ -64,6 +73,12 @@ function bindUiEvents(){
   $("loginBtn").onclick = signInWithGoogle;
   $("googleLogin").onclick = signInWithGoogle;
   $("logoutBtn").onclick = signOutUser;
+  $("viewToggle").onclick = () => {
+    setViewAsPlayer(!viewAsPlayer);
+    authLanded = false;              // ré-atterrit sur la page adaptée au rôle
+    renderAuth();
+    if(sb) loadBattleship();         // recharge les vues dépendantes du rôle
+  };
   document.querySelectorAll(".tab").forEach(b => b.onclick = () => showPage(b.dataset.page));
 
   // Sous-onglets du dashboard admin
