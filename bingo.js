@@ -152,6 +152,26 @@ async function recordBingoWin(){
   await sb.from("results").upsert({game:"bingo", player:currentPlayer, round}, {ignoreDuplicates:true});
 }
 
+// Archive la partie bingo en cours (scoreboard complet) dans l'historique
+async function archiveBingoGame(){
+  if(!sb) return;
+  const {data} = await sb.from("bingo_cards").select("player,data");
+  if(!data || !data.length) return; // rien à archiver
+  const scoreboard = data.map(r => {
+    const cells = r.data.cells || [];
+    const total = cells.length, done = cells.filter(c => c.checked).length;
+    return {player:r.player, done, total, pct: total ? Math.round(done / total * 100) : 0, win: hasBingoCard(r.data)};
+  }).sort((a, b) => (b.win - a.win) || (b.pct - a.pct));
+  const winner = scoreboard.find(s => s.win)?.player || "";
+  await sb.from("game_history").insert({
+    game:"bingo",
+    round: bingoSettings.startedAt || "",
+    started_at: bingoSettings.startedAt || null,
+    winner,
+    data: {scoreboard, reward: bingoSettings.reward, size: bingoSettings.size, players: scoreboard.length}
+  });
+}
+
 // --- Listes admin ---
 
 // Grilles bingo de tous les joueurs, triées par progression
@@ -214,6 +234,7 @@ function bindBingoEvents(){
   // Lance une nouvelle partie : grilles fraîches pour tout le monde
   $("launchBingo").onclick = async () => {
     if(!confirm("Lancer une nouvelle partie ? Les grilles de tout le monde seront réinitialisées.")) return;
+    if(bingoActive()) await archiveBingoGame(); // sauvegarde la partie précédente
     bingoSettings = {
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
@@ -228,12 +249,14 @@ function bindBingoEvents(){
     loadPlayers();
   };
 
-  // Termine la partie en cours (les grilles restent visibles dans le dashboard)
+  // Termine la partie en cours (archivée dans l'historique)
   $("endBingo").onclick = async () => {
     if(!confirm("Terminer la partie en cours ?")) return;
+    await archiveBingoGame();
     bingoSettings.active = false;
     await saveGame("bingo_settings", bingoSettings);
     renderBingoAvailability();
+    if(typeof loadHistory === "function") loadHistory();
   };
 
   $("resetMyBingo").onclick = async () => {

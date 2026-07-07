@@ -26,6 +26,25 @@ create policy "results_select_all" on public.results for select using (true);
 create policy "results_insert_all" on public.results for insert with check (true);
 create policy "results_delete_all" on public.results for delete using (true);
 
+-- Historique des parties terminées (onglet Historique du dashboard admin)
+-- data = snapshot : bingo -> {scoreboard,reward,size,players} ; who -> {image,reveal_pct,subs,goal,grid,answer,clue}
+create table if not exists public.game_history (
+  id uuid primary key default gen_random_uuid(),
+  game text not null,
+  round text default '',
+  started_at timestamptz,
+  ended_at timestamptz default now(),
+  winner text default '',
+  data jsonb not null default '{}'::jsonb
+);
+alter table public.game_history enable row level security;
+drop policy if exists "history_select_all" on public.game_history;
+drop policy if exists "history_insert_all" on public.game_history;
+drop policy if exists "history_delete_all" on public.game_history;
+create policy "history_select_all" on public.game_history for select using (true);
+create policy "history_insert_all" on public.game_history for insert with check (true);
+create policy "history_delete_all" on public.game_history for delete using (true);
+
 -- Profils des joueurs connectés via Google (onglet Utilisateurs du dashboard admin)
 create table if not exists public.players (
   email text primary key,
