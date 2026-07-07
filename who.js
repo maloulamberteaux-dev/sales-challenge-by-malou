@@ -71,7 +71,9 @@ function renderWho(){
   // Chip d'état + bouton lancer/arrêter (panneau admin)
   $("whoLiveChip").textContent = who.live ? "🟢 Partie en cours" : (finished ? "🏁 Terminée" : "⚙️ En préparation");
   $("toggleLive").textContent = who.live ? "🛑 Arrêter la partie" : "🚀 Lancer la partie";
-  $("pickWinnerBtn").classList.toggle("hidden", !who.live && !finished);
+  // Pendant la partie : on masque les réglages, on ne montre que les actions
+  if($("whoSettings")) $("whoSettings").classList.toggle("hidden", !!who.live);
+  if($("whoActions")) $("whoActions").classList.toggle("hidden", !who.live);
 
   if(who.image && canSee){
     $("whoImg").src = who.image;
@@ -130,10 +132,37 @@ async function designateWinner(name){
   // Un seul vainqueur par manche : on remplace si l'admin change d'avis
   await sb.from("results").delete().eq("game", "who").eq("round", round);
   await sb.from("results").insert({game:"who", player:name, round});
+  await archiveWhoGame(name, round);
   who.winner = name;
   who.live = false;
   $("winnerPick").classList.add("hidden");
   await saveWho();
+  if(typeof loadHistory === "function") loadHistory();
+}
+
+// Archive la manche Qui suis-je dans l'historique (photo, taux de reveal, gagnant...)
+async function archiveWhoGame(winner, round){
+  if(!sb) return;
+  const n = +who.grid || 10, total = n * n;
+  const revealed = (who.hidden || []).filter(Boolean).length;
+  // Évite les doublons si l'admin re-désigne un vainqueur pour la même manche
+  await sb.from("game_history").delete().eq("game", "who").eq("round", round || "");
+  await sb.from("game_history").insert({
+    game:"who",
+    round: round || "",
+    started_at: who.startedAt || null,
+    winner,
+    data: {
+      image: who.image || "",
+      reveal_pct: total ? Math.round(revealed / total * 100) : 0,
+      revealed, total,
+      subs: who.subs || 0,
+      goal: who.goal || 0,
+      grid: n,
+      answer: who.answer || "",
+      clue: who.clue || ""
+    }
+  });
 }
 
 // Liste cliquable des joueurs connectés pour choisir le vainqueur

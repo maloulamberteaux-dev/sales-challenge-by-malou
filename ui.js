@@ -1,3 +1,5 @@
+let authLanded = false; // a-t-on déjà placé l'utilisateur sur sa page d'accueil ?
+
 function showPage(p){
   document.querySelectorAll(".page").forEach(e => e.classList.add("hidden"));
   const el = $(p);
@@ -47,12 +49,14 @@ function renderAuth(){
   if(typeof renderBingoAvailability === "function") renderBingoAvailability();
   if(typeof renderWho === "function" && sb) renderWho();
 
-  // Aiguillage de page — le Qui suis-je est le jeu principal
+  // Aiguillage de page — atterrissage une seule fois par connexion
   if(!loggedIn){
+    authLanded = false;
     showPage("gate");
-  } else {
-    const active = document.querySelector(".tab.active")?.dataset.page;
-    showPage(active && active !== "gate" ? active : "who");
+  } else if(!authLanded){
+    authLanded = true;
+    // Admin → Dashboard admin ; joueur → Classement
+    showPage(admin ? "admin" : "board");
   }
 }
 
@@ -68,6 +72,7 @@ function bindUiEvents(){
     document.querySelectorAll(".subpage").forEach(p => p.classList.add("hidden"));
     $(b.dataset.sub).classList.remove("hidden");
     if(b.dataset.sub === "adminUsers") loadUsers();
-    else loadPlayers();
+    else if(b.dataset.sub === "adminBingos") loadPlayers();
+    else if(b.dataset.sub === "adminHistory") loadHistory();
   });
 }

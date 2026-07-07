@@ -183,6 +183,21 @@ button.google:hover{border-color:#ff87d1!important}
 .rankRow .wins{color:var(--ink2);font-size:14px;flex:none}
 .emptyBoard{text-align:center;font-weight:700;color:var(--ink2);padding:20px 0}
 
+/* ---------- Historique des parties ---------- */
+.histItem{cursor:pointer;transition:transform .15s,border-color .15s}
+.histItem:hover{transform:translateX(4px);border-color:#ff87d1}
+.histDetail{animation:fadeUp .3s ease}
+.histDetail h3{font-size:22px;margin:10px 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.histWhen{font-weight:700;color:var(--ink2);font-size:14px}
+.histTags{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+#histBack{margin-bottom:14px}
+.whoDetail{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
+.whoPhotoWrap{border-radius:20px;overflow:hidden;box-shadow:0 12px 30px #7b2cff22}
+.histPhoto{width:100%;display:block;border-radius:20px}
+.histPhoto.empty{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--soft);border:2px dashed var(--softline);font-weight:800;color:var(--ink2)}
+.whoDetailStats .rules{margin-top:12px}
+@media(max-width:700px){.whoDetail{grid-template-columns:1fr}}
+
 /* ---------- Désignation du vainqueur ---------- */
 .winnerPick{display:grid;gap:8px;margin-top:8px}
 .winnerPick .cand{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;font-weight:800;transition:border-color .15s,transform .15s}
