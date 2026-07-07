@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css?v=6"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -40,47 +40,67 @@
 
     <section id="gate" class="card page">
       <div class="landing">
-        <div class="floaters" aria-hidden="true">
-          <span style="--d:0s;--x:4%;--y:10%">💜</span>
-          <span style="--d:1.2s;--x:90%;--y:14%">🎉</span>
-          <span style="--d:.6s;--x:8%;--y:72%">💸</span>
-          <span style="--d:1.8s;--x:86%;--y:68%">🚀</span>
-          <span style="--d:2.4s;--x:46%;--y:4%">⭐</span>
-          <span style="--d:.9s;--x:72%;--y:40%">🔥</span>
+        <div class="blob b1" aria-hidden="true"></div>
+        <div class="blob b2" aria-hidden="true"></div>
+        <div class="blob b3" aria-hidden="true"></div>
+
+        <div class="landBrand">
+          <strong>💖 Sales Challenge <span class="byline">by Malou</span></strong>
         </div>
-        <div class="gateBox wide">
-          <h2 class="landTitle">Le challenge qui met le feu<br><span class="tGrad">à tes ventes</span> 🔥</h2>
-          <p class="landSub">Transforme ta journée de vente en compétition d'équipe : coche tes missions, dévoile la photo mystère et grimpe au classement. Que le/la meilleur(e) gagne 🏆</p>
 
-          <div class="ctaWrap">
-            <button id="googleLogin" class="big google">
-              <span class="gIcon">G</span> Se connecter avec Google
-            </button>
-            <div class="gateNote">🔒 On utilise juste ton nom et ta photo Google. Rien d'autre.</div>
-          </div>
-
-          <div class="gameCards">
-            <div class="gameCard">
-              <div class="gcEmoji">🎭</div>
-              <h3>Qui suis-je ?</h3>
-              <p>Chaque abo vendu dévoile un bout de la photo mystère. Devine avant les autres !</p>
+        <div class="landGrid">
+          <div class="landLeft">
+            <span class="landKicker">🔥 Le challenge commercial en direct</span>
+            <h2 class="landTitle">Vends.<br>Coche.<br><span class="gold">GAGNE.</span></h2>
+            <p class="landSub">Bingo des missions, photo mystère, classement en direct : ta journée de vente devient une compétition d'équipe. Que le/la meilleur(e) gagne 🏆</p>
+            <div class="landCta">
+              <button id="googleLogin" class="google mega">
+                <span class="gIcon">G</span> Se connecter avec Google
+              </button>
             </div>
-            <div class="gameCard">
-              <div class="gcEmoji">💜</div>
-              <h3>Bingo Commercial</h3>
-              <p>Une grille de missions terrain. Une ligne complète = BINGO, et le gain est pour toi.</p>
-            </div>
-            <div class="gameCard">
-              <div class="gcEmoji">🏆</div>
-              <h3>Classement</h3>
-              <p>Chaque victoire compte. Enchaîne les wins et deviens la légende de l'équipe.</p>
+            <div class="landNote">🔒 Juste ton prénom et ta photo Google. Rien d'autre.</div>
+            <div class="landSteps">
+              <div class="landStep"><b>1.</b> Connecte-toi</div>
+              <div class="landStep"><b>2.</b> Rejoins la partie en cours</div>
+              <div class="landStep"><b>3.</b> Empoche la victoire 💰</div>
             </div>
           </div>
 
-          <div class="steps">
-            <div class="step"><span>1</span> Connecte-toi avec Google</div>
-            <div class="step"><span>2</span> Rejoins la partie en cours</div>
-            <div class="step"><span>3</span> Vends, coche, gagne 💰</div>
+          <div class="demoWrap" aria-hidden="true">
+            <div class="demoCardG">
+              <div class="demoHead"><span>💜 Bingo de Camille</span><span>🏆 50 €</span></div>
+              <div class="demoGrid">
+                <div class="demoCell" style="--i:0">📞</div>
+                <div class="demoCell" style="--i:3">🤝</div>
+                <div class="demoCell" style="--i:6">💸</div>
+                <div class="demoCell" style="--i:1">🎯</div>
+                <div class="demoCell" style="--i:4">😂</div>
+                <div class="demoCell" style="--i:7">📅</div>
+                <div class="demoCell" style="--i:2">🔥</div>
+                <div class="demoCell" style="--i:5">👻</div>
+                <div class="demoCell" style="--i:8">⭐</div>
+              </div>
+              <div class="demoBadge">🎉 BINGO !</div>
+            </div>
+            <div class="demoToast">🏆 Camille remporte le Qui suis-je !</div>
+          </div>
+        </div>
+
+        <div class="landCards">
+          <div class="landCard">
+            <div class="ic">🎭</div>
+            <h3>Qui suis-je ?</h3>
+            <p>Chaque abo vendu dévoile un bout de la photo mystère. Devine avant les autres !</p>
+          </div>
+          <div class="landCard">
+            <div class="ic">💜</div>
+            <h3>Bingo Commercial</h3>
+            <p>Une grille de missions terrain. Une ligne complète = BINGO, et le gain est pour toi.</p>
+          </div>
+          <div class="landCard">
+            <div class="ic">🏆</div>
+            <h3>Classement</h3>
+            <p>Chaque victoire compte. Enchaîne les wins et deviens la légende de l'équipe.</p>
           </div>
         </div>
       </div>
@@ -203,7 +223,7 @@
 
         <section class="stage">
           <div id="bingoWait" class="waitBox hidden">
-            <div class="gateEmoji">🎲</div>
+            <div class="spinner" id="bingoSpinner"><span>🎲</span></div>
             <h3>Aucune partie en cours</h3>
             <p id="bingoWaitTxt">L'admin prépare la prochaine partie... reste connecté(e) 🔥</p>
           </div>
@@ -258,14 +278,14 @@
     </section>
   </main>
 
-  <script src="config.js"></script>
-  <script src="utils.js"></script>
-  <script src="storage.js"></script>
-  <script src="ui.js"></script>
-  <script src="supabase.js"></script>
-  <script src="who.js"></script>
-  <script src="bingo.js"></script>
-  <script src="board.js"></script>
-  <script src="app.js"></script>
+  <script src="config.js?v=6"></script>
+  <script src="utils.js?v=6"></script>
+  <script src="storage.js?v=6"></script>
+  <script src="ui.js?v=6"></script>
+  <script src="supabase.js?v=6"></script>
+  <script src="who.js?v=6"></script>
+  <script src="bingo.js?v=6"></script>
+  <script src="board.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
