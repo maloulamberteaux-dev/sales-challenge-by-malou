@@ -69,10 +69,12 @@ async function handleSession(session){
 
 // Résout les noms d'affichage des comptes de test (pour filtrer les listes name-based)
 async function loadExcludedNames(){
-  const emails = (window.EXCLUDED_EMAILS || []).map(e => String(e).toLowerCase());
-  if(!emails.length) return;
   const {data} = await sb.from("players").select("name,email");
-  excludedNames = new Set((data || []).filter(p => emails.includes(String(p.email || "").toLowerCase())).map(p => p.name));
+  const players = data || [];
+  const excl = (window.EXCLUDED_EMAILS || []).map(e => String(e).toLowerCase());
+  const adm = (window.ADMIN_EMAILS || []).map(e => String(e).toLowerCase());
+  excludedNames = new Set(players.filter(p => excl.includes(String(p.email || "").toLowerCase())).map(p => p.name));
+  adminNames = new Set(players.filter(p => adm.includes(String(p.email || "").toLowerCase())).map(p => p.name));
 }
 
 // Enregistre/actualise le profil du joueur connecté (pour l'onglet Utilisateurs de l'admin)

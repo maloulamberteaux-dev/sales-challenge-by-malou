@@ -252,7 +252,7 @@ async function archiveWhoGame(winner, round){
 async function renderWinnerPick(){
   const box = $("winnerPick");
   let {data, error} = await sb.from("players").select("name,avatar,email").order("last_seen", {ascending:false});
-  const candidats = (data || []).filter(u => !isExcludedEmail(u.email));
+  const candidats = (data || []).filter(u => !isExcludedEmail(u.email) && !isAdminEmail(u.email));
   if(error || !candidats.length){
     box.innerHTML = "<p>Aucun joueur connecté pour l'instant 💤</p>";
     return;

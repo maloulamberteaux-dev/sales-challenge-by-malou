@@ -198,7 +198,7 @@ function checkBingo(n){
 // Enregistre la victoire de la manche en cours (1 seule fois par joueur et par manche)
 async function recordBingoWin(){
   if(!sb || !currentPlayer) return;
-  if(isExcludedEmail(currentUser?.email)) return; // comptes de test : pas de victoire enregistrée
+  if(isExcludedEmail(currentUser?.email) || isAdminEmail(currentUser?.email)) return; // admins / comptes de test : pas de victoire enregistrée
   const round = bingoSettings.startedAt || "";
   await sb.from("results").upsert({game:"bingo", player:currentPlayer, round}, {ignoreDuplicates:true});
 }

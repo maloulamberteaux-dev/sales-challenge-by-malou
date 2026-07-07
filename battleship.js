@@ -169,7 +169,9 @@ function bsComputeWinners(){
   Object.values(byShip).forEach(shots => {
     if(!shots.some(s => s.sunk)) return; // pas encore coulé
     const fatal = shots.reduce((a, b) => new Date(a.fired_at || 0) > new Date(b.fired_at || 0) ? a : b);
-    winners.push({name:fatal.by_name || "?", email:(fatal.by_email || "").toLowerCase(), at:fatal.fired_at});
+    const name = fatal.by_name || "?";
+    if(isNonCompeting(name)) return; // admins / comptes de test hors gains
+    winners.push({name, email:(fatal.by_email || "").toLowerCase(), at:fatal.fired_at});
   });
   return winners.sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0));
 }
