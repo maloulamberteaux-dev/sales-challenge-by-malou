@@ -6,3 +6,9 @@ window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 window.ADMIN_EMAILS = [
   "malou.lamberteaux@gmail.com"
 ];
+
+// 🧪 Comptes de TEST : peuvent jouer mais n'apparaissent PAS dans la liste des
+// utilisateurs, ni parmi les vainqueurs possibles, ni dans les classements.
+window.EXCLUDED_EMAILS = [
+  "safir@lumeos.pro"
+];

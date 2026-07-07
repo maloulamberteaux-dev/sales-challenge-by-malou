@@ -169,12 +169,13 @@ async function archiveWhoGame(winner, round){
 async function renderWinnerPick(){
   const box = $("winnerPick");
   let {data, error} = await sb.from("players").select("name,avatar,email").order("last_seen", {ascending:false});
-  if(error || !(data || []).length){
+  const candidats = (data || []).filter(u => !isExcludedEmail(u.email));
+  if(error || !candidats.length){
     box.innerHTML = "<p>Aucun joueur connecté pour l'instant 💤</p>";
     return;
   }
   box.innerHTML = "";
-  data.forEach(u => {
+  candidats.forEach(u => {
     const el = document.createElement("div");
     el.className = "cand";
     el.innerHTML = `${u.avatar ? `<img src="${esc(u.avatar)}" alt=""/>` : `<span class="pAvatar fallback mini">${esc((u.name || "?")[0].toUpperCase())}</span>`}<span>${esc(u.name || u.email)}</span><span class="candGo">🏆</span>`;
