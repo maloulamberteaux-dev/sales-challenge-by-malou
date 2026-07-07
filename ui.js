@@ -99,6 +99,7 @@ function bindUiEvents(){
     document.querySelectorAll(".subpage").forEach(p => p.classList.add("hidden"));
     $(b.dataset.sub).classList.remove("hidden");
     if(b.dataset.sub === "adminUsers") loadUsers();
+    else if(b.dataset.sub === "adminGains") loadGains();
     else if(b.dataset.sub === "adminBingos") loadPlayers();
     else if(b.dataset.sub === "adminHistory") loadHistory();
   });
