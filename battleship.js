@@ -583,9 +583,10 @@ function bindBattleshipEvents(){
   $("bsLaunch").onclick = bsLaunch;
   $("bsStop").onclick = bsStop;
   $("bsGrid").onchange = async () => {
-    bs.grid = +$("bsGrid").value;
+    bs = { ...bs, grid: +$("bsGrid").value };
     bsDraft = new Set(); bsDraftDirty = true;      // la grille change → on repart d'une grille vierge
     await sb.from("bs_ships").delete().gte("id", 0);
+    await saveGame("battleship", bs);              // persiste la taille (sinon loadBattleship l'écrase)
     await loadBattleship();
   };
 }
