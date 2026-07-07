@@ -17,12 +17,17 @@ async function loadHistory(){
     $("historyList").innerHTML = "<p class='emptyBoard'>Aucune partie terminée pour l'instant 🎬</p>";
     return;
   }
+  const META = {
+    bingo: {icon:"💜", name:"Bingo Commercial"},
+    who: {icon:"🎭", name:"Qui suis-je ?"},
+    battleship: {icon:"🚢", name:"Touché-coulé"}
+  };
   $("historyList").innerHTML = historyCache.map((h, i) => {
-    const icon = h.game === "bingo" ? "💜" : "🎭";
-    const name = h.game === "bingo" ? "Bingo Commercial" : "Qui suis-je ?";
+    const icon = (META[h.game] || META.who).icon;
+    const name = (META[h.game] || META.who).name;
     const when = fmtDate(h.ended_at);
-    const sub = h.game === "bingo"
-      ? `${h.data?.players || 0} joueur(s)`
+    const sub = h.game === "bingo" ? `${h.data?.players || 0} joueur(s)`
+      : h.game === "battleship" ? `${(h.data?.ships || []).filter(s => s.sunk).length}/${(h.data?.ships || []).length} bateaux coulés`
       : `${h.data?.reveal_pct ?? 0}% dévoilé`;
     const win = h.winner ? `🏆 ${esc(h.winner)}` : "sans vainqueur";
     return `<div class="playerCard histItem" data-i="${i}">
@@ -67,6 +72,23 @@ function showHistoryDetail(i){
           <strong>${esc(s.player)}</strong>
           <span class="wins">${s.done}/${s.total} · ${s.pct}%</span>
         </div>`).join("") : "<p>Aucun joueur sur cette partie.</p>") +
+      `</div>`;
+  } else if(h.game === "battleship"){
+    const d = h.data || {};
+    const ships = d.ships || [];
+    inner += `<h3>🚢 Touché-coulé <small class="histWhen">${when}</small></h3>
+      <div class="histTags">
+        <span class="chip">🏆 ${esc(d.reward || "10 €")} le coup fatal</span>
+        <span class="chip">🎯 ${d.hits || 0}/${d.shots || 0} tirs au but</span>
+        <span class="chip">🚢 ${ships.filter(s => s.sunk).length}/${ships.length} coulés</span>
+      </div>
+      <div class="boardList">` +
+      (ships.length ? ships.map(s => `
+        <div class="rankRow${s.sunk ? " top" : ""}">
+          <span class="medal">${s.sunk ? "🔥" : "🚢"}</span>
+          <strong>${esc(s.name)}</strong>
+          <span class="wins">${s.sunk ? "coulé par " + esc(s.sunk_by || "?") : "a survécu"}</span>
+        </div>`).join("") : "<p>Aucun bateau.</p>") +
       `</div>`;
   } else {
     const d = h.data || {};

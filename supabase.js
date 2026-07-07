@@ -13,6 +13,7 @@ async function initSupabase(){
   await loadExcludedNames();
   await loadWho();
   await loadBingoSettings();
+  await loadBattleship();
   await loadPlayers();
 
   // Réagit aux connexions / déconnexions Google
@@ -31,7 +32,17 @@ async function initSupabase(){
       // Partie lancée → chaque joueur connecté la rejoint (grille créée si besoin)
       if(currentPlayer && bingoActive()) openBingo();
     }
+    if(payload.new.id === "battleship"){
+      bs = payload.new.data;
+      loadBattleship();
+    }
   }).subscribe();
+
+  // Touché-coulé : tirs et torpilles en temps réel
+  sb.channel("bs_changes")
+    .on("postgres_changes", {event:"*", schema:"public", table:"bs_shots"}, () => loadBattleship())
+    .on("postgres_changes", {event:"*", schema:"public", table:"bs_torpedoes"}, () => loadBattleship())
+    .subscribe();
 
   sb.channel("bingo_cards_changes").on("postgres_changes", {event:"*", schema:"public", table:"bingo_cards"}, payload => {
     // Ma grille supprimée (nouvelle partie) → j'en récupère une fraîche
@@ -52,6 +63,7 @@ async function handleSession(session){
     upsertPlayerProfile(); // trace la connexion dans la table players (non bloquant)
     await openBingo();
   }
+  if(sb) loadBattleship(); // recharge avec le bon rôle (admin voit ses bateaux)
 }
 
 // Résout les noms d'affichage des comptes de test (pour filtrer les listes name-based)
