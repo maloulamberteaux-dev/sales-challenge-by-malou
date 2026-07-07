@@ -205,8 +205,11 @@ function renderBsWinners(){
     per[k] = per[k] || {name:w.name, email:w.email, count:0};
     per[k].count++;
   });
+  const over = bsAllSunk();
   box.classList.remove("hidden");
-  box.innerHTML = `<div class="bsWinTitle">💰 Gains de la partie</div>` +
+  box.classList.toggle("finalBoard", over);
+  const title = over ? "🏁 Partie terminée — Scoreboard final 🏆" : "💰 Gains de la partie";
+  box.innerHTML = `<div class="bsWinTitle">${title}</div>` +
     Object.values(per).sort((a, b) => b.count - a.count).map(p => {
       const av = bsPlayersMap[p.email]?.avatar;
       const badge = av ? `<img src="${esc(av)}" class="pAvatar mini" alt=""/>` : `<span class="pAvatar fallback mini">${esc((p.name || "?")[0].toUpperCase())}</span>`;
@@ -214,11 +217,19 @@ function renderBsWinners(){
     }).join("");
 }
 
+// Tous les bateaux sont-ils coulés ? (partie terminée)
+function bsAllSunk(){
+  const total = admin ? (bsShipsAdmin.length || bs.ships_total || 0) : (bs.ships_total || 0);
+  if(!bs.live || !total) return false;
+  const sunkShips = new Set(bsShots.filter(s => s.sunk && s.ship_id != null).map(s => s.ship_id));
+  return sunkShips.size >= total;
+}
+
 // 🚀 Qui a des torpilles prêtes à tirer — visible par TOUS pendant la partie
 function renderBsTorpBoard(){
   const box = $("bsTorpBoard");
   if(!box) return;
-  if(!bs.live){ box.classList.add("hidden"); box.innerHTML = ""; return; }
+  if(!bs.live || bsAllSunk()){ box.classList.add("hidden"); box.innerHTML = ""; return; }
   box.classList.remove("hidden");
   const holders = bsTorp
     .filter(t => (t.count || 0) > 0 && !isExcludedEmail(t.email))
@@ -241,6 +252,7 @@ function renderBattleship(){
   if(bsPaint) return; // ne pas re-rendre en plein coup de pinceau
   const n = bs.grid || 10;
   const inPrep = admin && !bs.live;
+  const over = bsAllSunk(); // tous les bateaux coulés → partie figée sur le scoreboard
   const shotMap = {}; bsShots.forEach(s => shotMap[s.cell] = s);
 
   // Cases par bateau coulé (pour skins + coques connectées)
@@ -334,7 +346,7 @@ function renderBattleship(){
         } else {
           if(admin && adminShipSet && adminShipSet.has(i) && !ghostPlan.covered.has(i)) c.classList.add("ship-faint");
           c.onclick = () => bsFire(i);
-          c.disabled = !(bs.live && bsMyTorp() > 0);
+          c.disabled = over || !(bs.live && bsMyTorp() > 0);
         }
       }
       board.appendChild(c);
@@ -347,9 +359,16 @@ function renderBattleship(){
     else { board.onpointerdown = board.onpointermove = board.onpointerup = board.onpointercancel = null; board.style.touchAction = ""; }
   }
 
+  // Fin de partie : bouton "Clôturer" mis en avant pour l'admin
+  if($("bsStop")){
+    $("bsStop").classList.toggle("terminatePulse", over);
+    $("bsStop").textContent = over ? "🏁 Clôturer la partie" : "🛑 Terminer la bataille";
+  }
+
   // Message d'état
   if($("bsMsg") && !$("bsMsg").dataset.sticky){
-    if(inPrep) $("bsMsg").textContent = "🎨 Reste appuyé et glisse sur la grille pour dessiner tes bateaux.";
+    if(over) $("bsMsg").textContent = "🏁 Tous les bateaux coulés — partie terminée !";
+    else if(inPrep) $("bsMsg").textContent = "🎨 Reste appuyé et glisse sur la grille pour dessiner tes bateaux.";
     else if(showWait) $("bsMsg").textContent = "";
     else if(bsMyTorp() > 0) $("bsMsg").textContent = `🚀 Tu as ${bsMyTorp()} torpille(s) — vise un bateau !`;
     else $("bsMsg").textContent = "🚀 Pas de torpille — vends un abo pour en gagner une !";
@@ -424,7 +443,7 @@ function bsUpdateShipPreview(){
 
 // 🔥 Tir d'un joueur : passe par la fonction serveur sécurisée
 async function bsFire(cell){
-  if(!bs.live) return;
+  if(!bs.live || bsAllSunk()) return; // partie figée si tous les bateaux sont coulés
   if(bsMyTorp() < 1){ bsFlash("🚀 Pas de torpille — vends un abo !"); return; }
   const { data, error } = await sb.rpc("bs_fire", { p_cell: cell });
   if(error){

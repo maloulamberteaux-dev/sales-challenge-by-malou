@@ -136,6 +136,10 @@ span.bsAv{display:flex;align-items:center;justify-content:center;background:line
 /* 💰 Gains de la partie (visible par tous) */
 .bsWinners{margin-top:14px;background:linear-gradient(135deg,#fff6d8,#ffeef9);border:2px solid var(--gold);border-radius:var(--r-md);padding:14px;display:grid;gap:10px;animation:fadeUp .35s ease}
 .bsWinTitle{font-weight:900;text-align:center;color:#7a5a00}
+.bsWinners.finalBoard{border-width:3px;box-shadow:0 12px 34px #ffb34755;animation:popIn .4s ease}
+.bsWinners.finalBoard .bsWinTitle{font-size:19px}
+@keyframes termPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+button.terminatePulse{background:linear-gradient(135deg,#ff2e9f,#7b2cff)!important;color:#fff!important;border-color:transparent!important;animation:termPulse 1.3s ease-in-out infinite}
 .bsWinRow{display:flex;align-items:center;gap:10px;background:#ffffffcc;border-radius:99px;padding:6px 12px 6px 6px;font-weight:800}
 .bsWinRow strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bsWinShips{font-size:13px;color:var(--ink2);flex:none}
@@ -266,6 +270,20 @@ button.google:hover{border-color:#ff87d1!important}
 .rankRow strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rankRow .wins{color:var(--ink2);font-size:14px;flex:none}
 .emptyBoard{text-align:center;font-weight:700;color:var(--ink2);padding:20px 0}
+
+/* ---------- Gains (dashboard admin) ---------- */
+.gainsSubTitle{margin:18px 0 10px;font-size:18px}
+.ledger{display:grid;gap:8px}
+.ledgerRow{display:flex;align-items:center;gap:12px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 12px;font-weight:800;animation:fadeUp .25s ease}
+.ledgerRow .lgGame{font-size:22px;flex:none}
+.ledgerRow .lgInfo{flex:1;min-width:0}
+.ledgerRow .lgInfo strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ledgerRow .lgInfo small{display:block;color:var(--ink2);font-weight:700;font-size:12px}
+.ledgerRow .small{flex:none;width:auto!important;margin:0!important}
+.ledgerRow.isPaid{opacity:.62;background:#f4fbf4;border-color:#bfe8bf}
+.ledgerRow.isPaid .chip{text-decoration:line-through}
+button.paidBtn{background:linear-gradient(135deg,#2fbf5a,#199e46)!important;color:#fff!important;box-shadow:none!important}
+.chip.paidChip{background:#e5f8e9;border-color:#b8e6c1;color:#177a37}
 
 /* ---------- Historique des parties ---------- */
 .histItem{cursor:pointer;transition:transform .15s,border-color .15s}

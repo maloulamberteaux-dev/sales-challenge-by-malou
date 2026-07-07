@@ -200,7 +200,7 @@ async function recordBingoWin(){
   if(!sb || !currentPlayer) return;
   if(isExcludedEmail(currentUser?.email) || isAdminEmail(currentUser?.email)) return; // admins / comptes de test : pas de victoire enregistrée
   const round = bingoSettings.startedAt || "";
-  await sb.from("results").upsert({game:"bingo", player:currentPlayer, round}, {ignoreDuplicates:true});
+  await sb.from("results").upsert({game:"bingo", player:currentPlayer, round, reward:bingoSettings.reward || ""}, {ignoreDuplicates:true});
 }
 
 // Archive la partie bingo en cours (scoreboard complet) dans l'historique

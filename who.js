@@ -1,4 +1,4 @@
-let who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:false, hidden:[], clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
+let who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:false, reward:"20 €", hidden:[], clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
 // 🔒 Anti-triche : l'original et la réponse restent dans who_secret (table admin-only).
 // who.image (public) = composite généré par l'admin avec UNIQUEMENT les pixels révélés.
 let whoSecret = {image:"", answer:""};
@@ -140,6 +140,8 @@ function renderWho(){
   const canSee = admin || !!who.live || finished;
 
   $("whoGoal").value = who.goal || 37;
+  if($("whoReward") && document.activeElement !== $("whoReward")) $("whoReward").value = who.reward || "";
+  if($("whoRewardChip")) $("whoRewardChip").textContent = "🏆 " + (who.reward || "—");
   $("whoGrid").value = n;
   $("whoAnswer").value = whoSecret.answer || "";
   $("answerBox").textContent = whoSecret.answer || "Réponse masquée";
@@ -180,7 +182,7 @@ function renderWho(){
 
   // Message d'ambiance selon la progression / le vainqueur
   if(finished){
-    $("whoMsg").textContent = `🏆 ${who.winner} a gagné !` + (who.answer ? ` C'était ${who.answer} !` : "");
+    $("whoMsg").textContent = `🏆 ${who.winner} gagne ${who.reward || ""} !`.replace(" !", "!") + (who.answer ? ` C'était ${who.answer} !` : "");
   }
   else if(!canSee) $("whoMsg").textContent = "⏳ En attente du lancement — reste connecté(e) !";
   else if(!who.image) $("whoMsg").textContent = "🕵️ Le jeu va commencer, ouvre l'œil !";
@@ -213,7 +215,7 @@ async function designateWinner(name){
   const round = who.startedAt || new Date().toISOString();
   // Un seul vainqueur par manche : on remplace si l'admin change d'avis
   await sb.from("results").delete().eq("game", "who").eq("round", round);
-  await sb.from("results").insert({game:"who", player:name, round});
+  await sb.from("results").insert({game:"who", player:name, round, reward:who.reward || ""});
   who.winner = name;
   who.live = false;
   who.answer = whoSecret.answer || who.answer || ""; // la réponse n'est publiée qu'à la fin
@@ -307,6 +309,12 @@ function bindWhoEvents(){
     who.goal = +$("whoGoal").value;
     await saveWho();
   };
+  $("whoReward").oninput = () => {
+    who.reward = $("whoReward").value;
+    if($("whoRewardChip")) $("whoRewardChip").textContent = "🏆 " + (who.reward || "—");
+    clearTimeout(bindWhoEvents._rt);
+    bindWhoEvents._rt = setTimeout(() => saveWho(), 500);
+  };
   $("whoFile").onchange = async e => {
     let f = e.target.files[0];
     if(!f) return;
@@ -344,7 +352,7 @@ function bindWhoEvents(){
   };
   $("resetWho").onclick = async () => {
     if(!confirm("Réinitialiser complètement le Qui suis-je ?")) return;
-    who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:who.blurEnabled, hidden:Array(100).fill(false), clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
+    who = {subs:0, goal:37, grid:10, blur:18, blurEnabled:who.blurEnabled, reward:who.reward || "20 €", hidden:Array(100).fill(false), clue:"💡 Indice : pas encore dévoilé", answer:"", image:"", live:false, winner:"", startedAt:""};
     whoSecret = {image:"", answer:""};
     await saveWhoSecret();
     await saveWho();
