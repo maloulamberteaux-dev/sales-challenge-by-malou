@@ -57,7 +57,7 @@ function bingoLayoutFromUI(){
 function renderBingoLayout(){
   const box = $("bingoLayout");
   if(!box) return;
-  const ordered = bingoSettings.ordered !== false; // par défaut : grille identique pour tous
+  const ordered = bingoSettings.ordered === true; // par défaut : grille identique pour tous
   if($("bingoOrderMode")) $("bingoOrderMode").textContent = ordered
     ? "📋 Grille identique pour tous (ordre défini)"
     : "🎲 Grille mélangée par joueur";
@@ -112,7 +112,7 @@ function createBingoCard(){
   let size = bingoSettings.size || 4;
   // Grille identique pour tous : on suit la disposition définie par l'admin
   const layout = bingoSettings.layout || [];
-  if(bingoSettings.ordered !== false && layout.length === size * size){
+  if(bingoSettings.ordered === true && layout.length === size * size){
     return {size, reward:bingoSettings.reward, cells:layout.map(t => ({t, checked:false}))};
   }
   // Sinon : mélange propre à chaque joueur
@@ -277,7 +277,7 @@ function bindBingoEvents(){
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
       tasks:bingoTasksFromUI(),
-      ordered:bingoSettings.ordered !== false,
+      ordered:bingoSettings.ordered === true,
       layout:bingoLayoutFromUI()
     };
     await saveGame("bingo_settings", bingoSettings);
@@ -286,7 +286,7 @@ function bindBingoEvents(){
 
   // Bascule : grille identique (ordre défini) / grille mélangée par joueur
   $("bingoOrderMode").onclick = () => {
-    bingoSettings.ordered = !(bingoSettings.ordered !== false);
+    bingoSettings.ordered = !bingoSettings.ordered;
     renderBingoLayout();
   };
   $("bingoSize").onchange = () => renderBingoLayout();
@@ -303,7 +303,7 @@ function bindBingoEvents(){
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
       tasks:bingoTasksFromUI(),
-      ordered:bingoSettings.ordered !== false,
+      ordered:bingoSettings.ordered === true,
       layout:bingoLayoutFromUI(),
       active:true,
       startedAt:new Date().toISOString()
