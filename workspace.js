@@ -107,6 +107,21 @@ async function removeMember(email){
   if(typeof loadUsers === "function") loadUsers();
 }
 
+// Ajout direct d'un membre par email (pré-autorisé : actif dès sa connexion)
+async function inviteMember(){
+  const email = ($("inviteEmail").value || "").trim().toLowerCase();
+  if(!email.includes("@") || email.length < 5){ alert("Entre une adresse email valide 🙂"); return; }
+  const { data: existing } = await sb.from("players").select("email,workspace_id,status").eq("email", email).maybeSingle();
+  if(existing){
+    if(existing.workspace_id === currentWorkspace && existing.status === "active"){ alert("Ce membre est déjà dans l'équipe."); return; }
+    await sb.from("players").update({ workspace_id: currentWorkspace, status: "active", requested_workspace_id: null }).eq("email", email);
+  } else {
+    await sb.from("players").insert({ email, name: email.split("@")[0], workspace_id: currentWorkspace, status: "active", role: "member" });
+  }
+  $("inviteEmail").value = "";
+  if(typeof loadUsers === "function") loadUsers();
+}
+
 // --- Super admin : sélecteur d'équipe + vue d'ensemble ---
 async function renderWorkspaceSwitcher(){
   const wrap = $("wsSwitcher");
@@ -151,4 +166,7 @@ function bindWorkspaceEvents(){
   $("onbCreate").onclick = createWorkspace;
   $("onbCancel").onclick = cancelRequest;
   $("wsSelect").onchange = () => switchWorkspace($("wsSelect").value);
+  $("inviteBtn").onclick = inviteMember;
+  $("inviteEmail").onkeydown = e => { if(e.key === "Enter") inviteMember(); };
+  $("usersSearch").oninput = () => { if(typeof renderUsersList === "function") renderUsersList(); };
 }

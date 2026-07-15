@@ -250,31 +250,55 @@ async function loadPlayers(){
   }).join("") || "<p>Aucune grille ouverte pour l'instant 💤</p>";
 }
 
-// Utilisateurs connectés (table players, remplie à chaque connexion Google)
+// --- Gestion des membres de l'équipe (admin) ---
+let _usersCache = [];
+
 async function loadUsers(){
   if(!sb) return;
-  let {data, error} = await sb.from("players").select("*").eq("workspace_id", WS()).eq("status", "active").order("last_seen", {ascending:false});
+  // Admins d'abord, puis par nom
+  let {data, error} = await sb.from("players").select("*").eq("workspace_id", WS()).eq("status", "active").order("role").order("name");
   if(error){
     $("usersList").innerHTML = "<p>⚠️ Table <b>players</b> absente — lance le SQL de setup.</p>";
     return;
   }
+  _usersCache = (data || []).filter(u => !isExcludedEmail(u.email));
+  renderUsersList();
+  // Alerte demandes en attente (raccourci vers l'onglet À valider)
+  const { data: pend } = await sb.from("players").select("email").eq("requested_workspace_id", WS()).eq("status", "pending");
+  const alertBox = $("usersPendingAlert");
+  if(alertBox){
+    const n = (pend || []).length;
+    alertBox.classList.toggle("hidden", !n);
+    alertBox.innerHTML = n ? `👋 <b>${n} demande(s)</b> en attente de validation. <button class="small" id="goPending">Voir</button>` : "";
+    const go = $("goPending");
+    if(go) go.onclick = () => document.querySelector('[data-sub="adminPending"]')?.click();
+  }
+}
+
+function renderUsersList(){
+  const q = ($("usersSearch")?.value || "").toLowerCase().trim();
+  const list = _usersCache.filter(u => !q || (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q));
+  const admins = _usersCache.filter(u => u.role === "admin").length;
+  if($("usersSummary")) $("usersSummary").textContent = `👥 ${_usersCache.length} membre(s) · 👑 ${admins} admin(s)`;
+
   const me = (currentUser?.email || "").toLowerCase();
-  $("usersList").innerHTML = (data || []).filter(u => !isExcludedEmail(u.email)).map(u => {
+  $("usersList").innerHTML = list.map(u => {
     const isMe = (u.email || "").toLowerCase() === me;
     const isAdm = u.role === "admin";
-    const actions = (admin && !isMe) ? `
+    const roleChip = `<span class="roleChip ${isAdm ? "adm" : ""}">${isAdm ? "👑 Admin" : "Membre"}</span>`;
+    const actions = (admin && !isMe) ? `<div class="uActions">
       <button class="small ghost" data-role="${esc(u.email)}" data-to="${isAdm ? "member" : "admin"}">${isAdm ? "⬇️ Rétrograder" : "👑 Promouvoir"}</button>
-      <button class="small ghost" data-remove="${esc(u.email)}" title="Retirer de l'équipe">🗑️</button>` : "";
-    return `<div class="playerCard">
+      <button class="small ghost danger" data-remove="${esc(u.email)}" title="Retirer de l'équipe">🗑️</button></div>` : "";
+    return `<div class="playerCard userCard">
       ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}
       <div class="pInfo">
-        <strong>${esc(u.name || u.email)}${isAdm ? " 👑" : ""}${isMe ? " (toi)" : ""}</strong>
+        <strong>${esc(u.name || u.email)}${isMe ? " (toi)" : ""} ${roleChip}</strong>
         <small>${esc(u.email)}</small>
         <small>🕐 ${timeAgo(u.last_seen)}</small>
       </div>
       ${actions}
     </div>`;
-  }).join("") || "<p>Personne dans l'équipe pour l'instant 💤</p>";
+  }).join("") || `<p class="emptyBoard">${q ? "Aucun membre ne correspond 🔍" : "Personne dans l'équipe pour l'instant 💤"}</p>`;
   $("usersList").querySelectorAll("button[data-role]").forEach(b => b.onclick = () => setMemberRole(b.dataset.role, b.dataset.to));
   $("usersList").querySelectorAll("button[data-remove]").forEach(b => b.onclick = () => removeMember(b.dataset.remove));
 }
