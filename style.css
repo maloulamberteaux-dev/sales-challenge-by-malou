@@ -193,6 +193,11 @@ button.terminatePulse{background:linear-gradient(135deg,#ff2e9f,#7b2cff)!importa
 .pBadge{background:var(--grad);color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:900;margin-left:2px}
 .subtab.hasPending{box-shadow:0 0 0 2px var(--pink)}
 .wsCur{color:var(--pink);font-weight:900}
+.wsCreate{background:var(--soft);border:2px solid var(--softline);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.wsCreate strong{display:block;margin-bottom:8px;color:var(--ink2)}
+.wsCreateRow{display:flex;gap:8px;flex-wrap:wrap}
+.wsCreateRow input{flex:1;min-width:150px}
+.wsCreateRow button{flex:none;white-space:nowrap}
 .userBox{display:flex;align-items:center;gap:8px;background:var(--soft);border:2px solid var(--softline);border-radius:99px;padding:4px 12px 4px 4px;font-weight:800;max-width:100%;min-width:0}
 #userName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
 #userAvatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 2px 6px #7b2cff33;flex:none}

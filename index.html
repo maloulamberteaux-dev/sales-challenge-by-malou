@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=30"/>
+  <link rel="stylesheet" href="style.css?v=31"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -426,6 +426,14 @@
         <div id="pendingList" class="players"></div>
       </div>
       <div id="adminWorkspaces" class="subpage hidden">
+        <div class="wsCreate">
+          <strong>➕ Créer une équipe</strong>
+          <div class="wsCreateRow">
+            <input id="newWsName" placeholder="Nom de l'équipe (ex : Team Lyon)"/>
+            <input id="newWsLeader" type="email" placeholder="Email du team leader (optionnel)"/>
+            <button id="newWsBtn" class="small">Créer</button>
+          </div>
+        </div>
         <div id="wsOverview" class="players"></div>
       </div>
       <div id="adminGains" class="subpage hidden">
@@ -443,17 +451,17 @@
     </section>
   </main>
 
-  <script src="config.js?v=30"></script>
-  <script src="utils.js?v=30"></script>
-  <script src="storage.js?v=30"></script>
-  <script src="ui.js?v=30"></script>
-  <script src="supabase.js?v=30"></script>
-  <script src="workspace.js?v=30"></script>
-  <script src="who.js?v=30"></script>
-  <script src="bingo.js?v=30"></script>
-  <script src="battleship.js?v=30"></script>
-  <script src="board.js?v=30"></script>
-  <script src="history.js?v=30"></script>
-  <script src="app.js?v=30"></script>
+  <script src="config.js?v=31"></script>
+  <script src="utils.js?v=31"></script>
+  <script src="storage.js?v=31"></script>
+  <script src="ui.js?v=31"></script>
+  <script src="supabase.js?v=31"></script>
+  <script src="workspace.js?v=31"></script>
+  <script src="who.js?v=31"></script>
+  <script src="bingo.js?v=31"></script>
+  <script src="battleship.js?v=31"></script>
+  <script src="board.js?v=31"></script>
+  <script src="history.js?v=31"></script>
+  <script src="app.js?v=31"></script>
 </body>
 </html>
