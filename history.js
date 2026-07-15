@@ -4,7 +4,7 @@ let historyCache = [];
 
 async function loadHistory(){
   if(!sb) return;
-  const {data, error} = await sb.from("game_history").select("*").order("ended_at", {ascending:false});
+  const {data, error} = await sb.from("game_history").select("*").eq("workspace_id", WS()).order("ended_at", {ascending:false});
   if(error){
     $("historyList").innerHTML = "<p>⚠️ Table <b>game_history</b> absente — lance le SQL de setup.</p>";
     return;

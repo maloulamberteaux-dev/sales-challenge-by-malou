@@ -2,7 +2,7 @@
 
 async function loadLeaderboard(){
   if(!sb) return;
-  let {data, error} = await sb.from("results").select("game,player,won_at");
+  let {data, error} = await sb.from("results").select("game,player,won_at").eq("workspace_id", WS());
   if(error){
     $("boardWho").innerHTML = $("boardBingo").innerHTML = $("boardBattleship").innerHTML = "<p>⚠️ Table <b>results</b> absente — lance le SQL de setup.</p>";
     return;
@@ -35,13 +35,13 @@ const GAINS_GAMES = {
 // 💰 Suivi des gains (dashboard admin) : total par personne + journal détaillé
 async function loadGains(){
   if(!sb) return;
-  const {data, error} = await sb.from("results").select("*").order("won_at", {ascending:false});
+  const {data, error} = await sb.from("results").select("*").eq("workspace_id", WS()).order("won_at", {ascending:false});
   if(error){ $("gainsTotals").innerHTML = "<p>⚠️ Table results absente.</p>"; return; }
   const rows = (data || []).filter(r => !isNonCompeting(r.player));
 
   // Avatars par nom (depuis la table players)
   const av = {};
-  ((await sb.from("players").select("name,avatar")).data || []).forEach(p => { if(p.name) av[p.name] = p.avatar; });
+  ((await sb.from("players").select("name,avatar").eq("workspace_id", WS())).data || []).forEach(p => { if(p.name) av[p.name] = p.avatar; });
 
   // Totaux par joueur : ce qui reste à payer vs déjà versé
   const per = {};
@@ -83,7 +83,7 @@ async function loadGains(){
 async function toggleGainPaid(game, player, round, paid){
   const { error } = await sb.from("results")
     .update({ paid, paid_at: paid ? new Date().toISOString() : null })
-    .eq("game", game).eq("player", player).eq("round", round);
+    .eq("game", game).eq("player", player).eq("round", round).eq("workspace_id", WS());
   if(error){ alert("Mise à jour impossible : " + error.message); return; }
   loadGains();
 }

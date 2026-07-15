@@ -5,7 +5,7 @@ let whoSecret = {image:"", answer:""};
 let lastWinnerSeen = null; // pour ne fêter le vainqueur qu'une fois
 
 async function loadWho(){
-  let {data, error} = await sb.from("game_state").select("data").eq("id", "who").maybeSingle();
+  let {data, error} = await sb.from("game_state").select("data").eq("id", "who").eq("workspace_id", WS()).maybeSingle();
   if(error){
     console.error(error);
     $("syncStatus").textContent = "⚠️ Lance le SQL Supabase d’abord";
@@ -24,14 +24,14 @@ async function loadWho(){
 // Charge les secrets (photo originale + réponse) — ne renvoie des données qu'aux admins (RLS)
 async function loadWhoSecret(){
   if(!admin || !sb) return;
-  const {data} = await sb.from("who_secret").select("*").eq("id", "who").maybeSingle();
+  const {data} = await sb.from("who_secret").select("*").eq("id", "who").eq("workspace_id", WS()).maybeSingle();
   whoSecret = data ? {image:data.image || "", answer:data.answer || ""} : {image:"", answer:""};
   renderWho();
 }
 
 async function saveWhoSecret(){
   if(!admin || !sb) return;
-  const {error} = await sb.from("who_secret").upsert({id:"who", image:whoSecret.image, answer:whoSecret.answer});
+  const {error} = await sb.from("who_secret").upsert({id:"who", workspace_id:WS(), image:whoSecret.image, answer:whoSecret.answer});
   if(error){ console.error(error); alert("Sauvegarde secrète impossible : " + error.message); }
 }
 
@@ -215,8 +215,8 @@ async function designateWinner(name){
   if(!confirm(`Désigner ${name} comme vainqueur du Qui suis-je ?`)) return;
   const round = who.startedAt || new Date().toISOString();
   // Un seul vainqueur par manche : on remplace si l'admin change d'avis
-  await sb.from("results").delete().eq("game", "who").eq("round", round);
-  await sb.from("results").insert({game:"who", player:name, round, reward:who.reward || ""});
+  await sb.from("results").delete().eq("game", "who").eq("round", round).eq("workspace_id", WS());
+  await sb.from("results").insert({game:"who", player:name, round, reward:who.reward || "", workspace_id:WS()});
   who.winner = name;
   who.live = false;
   who.answer = whoSecret.answer || who.answer || ""; // la réponse n'est publiée qu'à la fin
@@ -232,9 +232,10 @@ async function archiveWhoGame(winner, round){
   const n = +who.grid || 10, total = n * n;
   const revealed = (who.hidden || []).filter(Boolean).length;
   // Évite les doublons si l'admin re-désigne un vainqueur pour la même manche
-  await sb.from("game_history").delete().eq("game", "who").eq("round", round || "");
+  await sb.from("game_history").delete().eq("game", "who").eq("round", round || "").eq("workspace_id", WS());
   await sb.from("game_history").insert({
     game:"who",
+    workspace_id: WS(),
     round: round || "",
     started_at: who.startedAt || null,
     winner,
@@ -254,8 +255,8 @@ async function archiveWhoGame(winner, round){
 // Liste cliquable des joueurs connectés pour choisir le vainqueur
 async function renderWinnerPick(){
   const box = $("winnerPick");
-  let {data, error} = await sb.from("players").select("name,avatar,email").order("last_seen", {ascending:false});
-  const candidats = (data || []).filter(u => !isExcludedEmail(u.email) && !isAdminEmail(u.email));
+  let {data, error} = await sb.from("players").select("name,avatar,email,role").eq("workspace_id", WS()).eq("status", "active").order("last_seen", {ascending:false});
+  const candidats = (data || []).filter(u => !isExcludedEmail(u.email) && u.role !== "admin");
   if(error || !candidats.length){
     box.innerHTML = "<p>Aucun joueur connecté pour l'instant 💤</p>";
     return;
