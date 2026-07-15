@@ -141,6 +141,25 @@ async function switchWorkspace(id){
   await enterWorkspaceData();
 }
 
+// Le super admin crée une équipe (et peut assigner un team leader par email)
+async function superCreateWorkspace(){
+  const name = ($("newWsName").value || "").trim();
+  if(!name){ alert("Donne un nom à l'équipe 🙂"); return; }
+  const { data: ws, error } = await sb.from("workspaces").insert({ name }).select().single();
+  if(error){ alert("Création impossible : " + error.message); return; }
+  const leader = ($("newWsLeader").value || "").trim().toLowerCase();
+  if(leader && leader.includes("@")){
+    const { data: ex } = await sb.from("players").select("email").eq("email", leader).maybeSingle();
+    if(ex) await sb.from("players").update({ workspace_id: ws.id, role: "admin", status: "active", requested_workspace_id: null }).eq("email", leader);
+    else await sb.from("players").insert({ email: leader, name: leader.split("@")[0], workspace_id: ws.id, role: "admin", status: "active" });
+  }
+  $("newWsName").value = ""; $("newWsLeader").value = "";
+  await loadWorkspaces();
+  renderWorkspaceSwitcher();
+  loadWorkspacesOverview();
+  alert(`Équipe « ${name} » créée ✅` + (leader ? `\nTeam leader : ${leader}` : "\nPense à lui assigner un team leader."));
+}
+
 async function loadWorkspacesOverview(){
   if(!sb || !superAdmin) return;
   await loadWorkspaces();
@@ -169,4 +188,5 @@ function bindWorkspaceEvents(){
   $("inviteBtn").onclick = inviteMember;
   $("inviteEmail").onkeydown = e => { if(e.key === "Enter") inviteMember(); };
   $("usersSearch").oninput = () => { if(typeof renderUsersList === "function") renderUsersList(); };
+  $("newWsBtn").onclick = superCreateWorkspace;
 }
