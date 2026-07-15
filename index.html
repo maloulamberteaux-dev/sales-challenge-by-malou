@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=27"/>
+  <link rel="stylesheet" href="style.css?v=29"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -17,6 +17,7 @@
       <div class="top">
         <strong>💖 Sales Challenge by Malou</strong>
         <div class="authArea">
+          <span id="wsSwitcher" class="wsSwitcher hidden">🏢 <select id="wsSelect"></select></span>
           <span id="userBox" class="userBox hidden">
             <img id="userAvatar" alt=""/>
             <span id="userName"></span>
@@ -109,6 +110,33 @@
             <h3>Classement</h3>
             <p>Chaque victoire compte. Enchaîne les wins et deviens la légende de l'équipe.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="onboarding" class="card page hidden">
+      <div class="gateBox">
+        <div id="onbChoice">
+          <div class="gateEmoji">👋</div>
+          <h2>Bienvenue dans le Sales Challenge</h2>
+          <p>Rejoins ton équipe, ou crée la tienne si tu es team leader.</p>
+
+          <label>Rejoindre une équipe existante</label>
+          <select id="onbWorkspaceSelect"></select>
+          <button id="onbJoin" class="big">✋ Demander à rejoindre</button>
+
+          <div class="orSep">— ou —</div>
+
+          <label>Créer ma propre équipe</label>
+          <input id="onbTeamName" placeholder="Nom de l'équipe (ex : Team Paris)"/>
+          <button id="onbCreate" class="ghost">➕ Créer mon équipe (je deviens team leader)</button>
+        </div>
+
+        <div id="onbPending" class="hidden">
+          <div class="spinner"><span>⏳</span></div>
+          <h2>En attente de validation</h2>
+          <p id="onbPendingTxt"></p>
+          <button id="onbCancel" class="ghost small">Annuler ma demande</button>
         </div>
       </div>
     </section>
@@ -232,7 +260,7 @@
             <label>Missions (une par ligne)</label>
             <textarea id="bingoTasks"></textarea>
             <label>Disposition des cases</label>
-            <button id="bingoOrderMode" class="ghost">📋 Grille identique pour tous (ordre défini)</button>
+            <button id="bingoOrderMode" class="ghost">🎲 Grille mélangée par joueur (unique)</button>
             <div id="bingoLayout" class="layoutGrid"></div>
             <button id="saveBingoSettings" class="ghost">💾 Sauvegarder les réglages</button>
             <button id="launchBingo">🚀 Lancer une nouvelle partie</button>
@@ -376,12 +404,20 @@
       </div>
       <nav class="subtabs">
         <button class="subtab active" data-sub="adminUsers">👥 Utilisateurs</button>
+        <button class="subtab" data-sub="adminPending">👋 À valider <span id="pendingBadge" class="pBadge hidden">0</span></button>
         <button class="subtab" data-sub="adminGains">💰 Gains</button>
         <button class="subtab" data-sub="adminBingos">💜 Grilles en cours</button>
         <button class="subtab" data-sub="adminHistory">📜 Historique</button>
+        <button class="subtab superOnly hidden" data-sub="adminWorkspaces">🏢 Équipes</button>
       </nav>
       <div id="adminUsers" class="subpage">
         <div id="usersList" class="players"></div>
+      </div>
+      <div id="adminPending" class="subpage hidden">
+        <div id="pendingList" class="players"></div>
+      </div>
+      <div id="adminWorkspaces" class="subpage hidden">
+        <div id="wsOverview" class="players"></div>
       </div>
       <div id="adminGains" class="subpage hidden">
         <div id="gainsTotals" class="players"></div>
@@ -398,16 +434,17 @@
     </section>
   </main>
 
-  <script src="config.js?v=27"></script>
-  <script src="utils.js?v=27"></script>
-  <script src="storage.js?v=27"></script>
-  <script src="ui.js?v=27"></script>
-  <script src="supabase.js?v=27"></script>
-  <script src="who.js?v=27"></script>
-  <script src="bingo.js?v=27"></script>
-  <script src="battleship.js?v=27"></script>
-  <script src="board.js?v=27"></script>
-  <script src="history.js?v=27"></script>
-  <script src="app.js?v=27"></script>
+  <script src="config.js?v=29"></script>
+  <script src="utils.js?v=29"></script>
+  <script src="storage.js?v=29"></script>
+  <script src="ui.js?v=29"></script>
+  <script src="supabase.js?v=29"></script>
+  <script src="workspace.js?v=29"></script>
+  <script src="who.js?v=29"></script>
+  <script src="bingo.js?v=29"></script>
+  <script src="battleship.js?v=29"></script>
+  <script src="board.js?v=29"></script>
+  <script src="history.js?v=29"></script>
+  <script src="app.js?v=29"></script>
 </body>
 </html>

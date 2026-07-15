@@ -29,7 +29,7 @@ function renderBingoAvailability(){
 }
 
 async function loadBingoSettings(){
-  let {data, error} = await sb.from("game_state").select("data").eq("id", "bingo_settings").single();
+  let {data, error} = await sb.from("game_state").select("data").eq("id", "bingo_settings").eq("workspace_id", WS()).maybeSingle();
   if(error) return;
   if(data) bingoSettings = data.data;
   renderBingoSettings();
@@ -57,7 +57,7 @@ function bingoLayoutFromUI(){
 function renderBingoLayout(){
   const box = $("bingoLayout");
   if(!box) return;
-  const ordered = bingoSettings.ordered !== false; // par défaut : grille identique pour tous
+  const ordered = bingoSettings.ordered === true; // par défaut : grille UNIQUE par joueur
   if($("bingoOrderMode")) $("bingoOrderMode").textContent = ordered
     ? "📋 Grille identique pour tous (ordre défini)"
     : "🎲 Grille mélangée par joueur";
@@ -87,7 +87,7 @@ function renderBingoLayout(){
 }
 
 async function loadBingo(player){
-  let {data} = await sb.from("bingo_cards").select("data").eq("player", player).maybeSingle();
+  let {data} = await sb.from("bingo_cards").select("data").eq("player", player).eq("workspace_id", WS()).maybeSingle();
   if(data) renderBingo(data.data);
 }
 
@@ -98,12 +98,12 @@ async function openBingo(){
   if(!p || !bingoActive()) return;
   $("bingoName").textContent = p;
 
-  let {data} = await sb.from("bingo_cards").select("data").eq("player", p).maybeSingle();
+  let {data} = await sb.from("bingo_cards").select("data").eq("player", p).eq("workspace_id", WS()).maybeSingle();
   if(data){
     renderBingo(data.data);
   } else {
     let card = createBingoCard();
-    await sb.from("bingo_cards").insert({player:p, data:card});
+    await sb.from("bingo_cards").insert({player:p, data:card, workspace_id:WS()});
     renderBingo(card);
   }
 }
@@ -112,7 +112,7 @@ function createBingoCard(){
   let size = bingoSettings.size || 4;
   // Grille identique pour tous : on suit la disposition définie par l'admin
   const layout = bingoSettings.layout || [];
-  if(bingoSettings.ordered !== false && layout.length === size * size){
+  if(bingoSettings.ordered === true && layout.length === size * size){
     return {size, reward:bingoSettings.reward, cells:layout.map(t => ({t, checked:false}))};
   }
   // Sinon : mélange propre à chaque joueur
@@ -144,7 +144,7 @@ function renderBingo(card){
       }
       updateBingoStats(card);
       checkBingo(n);
-      await sb.from("bingo_cards").upsert({player:currentPlayer, data:card, updated_at:new Date().toISOString()});
+      await sb.from("bingo_cards").upsert({player:currentPlayer, data:card, workspace_id:WS(), updated_at:new Date().toISOString()});
     };
     b.appendChild(c);
   });
@@ -198,15 +198,15 @@ function checkBingo(n){
 // Enregistre la victoire de la manche en cours (1 seule fois par joueur et par manche)
 async function recordBingoWin(){
   if(!sb || !currentPlayer) return;
-  if(isExcludedEmail(currentUser?.email) || isAdminEmail(currentUser?.email)) return; // admins / comptes de test : pas de victoire enregistrée
+  if(isExcludedEmail(currentUser?.email) || isMeAdmin()) return; // admins / comptes de test : pas de victoire enregistrée
   const round = bingoSettings.startedAt || "";
-  await sb.from("results").upsert({game:"bingo", player:currentPlayer, round, reward:bingoSettings.reward || ""}, {ignoreDuplicates:true});
+  await sb.from("results").upsert({game:"bingo", player:currentPlayer, round, reward:bingoSettings.reward || "", workspace_id:WS()}, {ignoreDuplicates:true});
 }
 
 // Archive la partie bingo en cours (scoreboard complet) dans l'historique
 async function archiveBingoGame(){
   if(!sb) return;
-  const {data} = await sb.from("bingo_cards").select("player,data");
+  const {data} = await sb.from("bingo_cards").select("player,data").eq("workspace_id", WS());
   if(!data || !data.length) return; // rien à archiver
   const scoreboard = data.map(r => {
     const cells = r.data.cells || [];
@@ -216,6 +216,7 @@ async function archiveBingoGame(){
   const winner = scoreboard.find(s => s.win)?.player || "";
   await sb.from("game_history").insert({
     game:"bingo",
+    workspace_id: WS(),
     round: bingoSettings.startedAt || "",
     started_at: bingoSettings.startedAt || null,
     winner,
@@ -228,7 +229,7 @@ async function archiveBingoGame(){
 // Grilles bingo de tous les joueurs, triées par progression
 async function loadPlayers(){
   if(!sb) return;
-  let {data} = await sb.from("bingo_cards").select("player,data").order("updated_at", {ascending:false});
+  let {data} = await sb.from("bingo_cards").select("player,data").eq("workspace_id", WS()).order("updated_at", {ascending:false});
   let rows = (data || []).filter(r => !isExcludedName(r.player)).map(r => {
     const cells = r.data.cells || [];
     const total = cells.length, done = cells.filter(c => c.checked).length;
@@ -252,21 +253,30 @@ async function loadPlayers(){
 // Utilisateurs connectés (table players, remplie à chaque connexion Google)
 async function loadUsers(){
   if(!sb) return;
-  let {data, error} = await sb.from("players").select("*").order("last_seen", {ascending:false});
+  let {data, error} = await sb.from("players").select("*").eq("workspace_id", WS()).eq("status", "active").order("last_seen", {ascending:false});
   if(error){
     $("usersList").innerHTML = "<p>⚠️ Table <b>players</b> absente — lance le SQL de setup.</p>";
     return;
   }
-  $("usersList").innerHTML = (data || []).filter(u => !isExcludedEmail(u.email)).map(u => `
-    <div class="playerCard">
+  const me = (currentUser?.email || "").toLowerCase();
+  $("usersList").innerHTML = (data || []).filter(u => !isExcludedEmail(u.email)).map(u => {
+    const isMe = (u.email || "").toLowerCase() === me;
+    const isAdm = u.role === "admin";
+    const actions = (admin && !isMe) ? `
+      <button class="small ghost" data-role="${esc(u.email)}" data-to="${isAdm ? "member" : "admin"}">${isAdm ? "⬇️ Rétrograder" : "👑 Promouvoir"}</button>
+      <button class="small ghost" data-remove="${esc(u.email)}" title="Retirer de l'équipe">🗑️</button>` : "";
+    return `<div class="playerCard">
       ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}
       <div class="pInfo">
-        <strong>${esc(u.name || u.email)}</strong>
+        <strong>${esc(u.name || u.email)}${isAdm ? " 👑" : ""}${isMe ? " (toi)" : ""}</strong>
         <small>${esc(u.email)}</small>
         <small>🕐 ${timeAgo(u.last_seen)}</small>
       </div>
-      ${u.is_admin ? '<span class="badge">👑</span>' : ''}
-    </div>`).join("") || "<p>Personne ne s'est encore connecté 💤</p>";
+      ${actions}
+    </div>`;
+  }).join("") || "<p>Personne dans l'équipe pour l'instant 💤</p>";
+  $("usersList").querySelectorAll("button[data-role]").forEach(b => b.onclick = () => setMemberRole(b.dataset.role, b.dataset.to));
+  $("usersList").querySelectorAll("button[data-remove]").forEach(b => b.onclick = () => removeMember(b.dataset.remove));
 }
 
 function bindBingoEvents(){
@@ -277,7 +287,7 @@ function bindBingoEvents(){
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
       tasks:bingoTasksFromUI(),
-      ordered:bingoSettings.ordered !== false,
+      ordered:bingoSettings.ordered === true,
       layout:bingoLayoutFromUI()
     };
     await saveGame("bingo_settings", bingoSettings);
@@ -286,7 +296,7 @@ function bindBingoEvents(){
 
   // Bascule : grille identique (ordre défini) / grille mélangée par joueur
   $("bingoOrderMode").onclick = () => {
-    bingoSettings.ordered = !(bingoSettings.ordered !== false);
+    bingoSettings.ordered = !bingoSettings.ordered;
     renderBingoLayout();
   };
   $("bingoSize").onchange = () => renderBingoLayout();
@@ -303,12 +313,12 @@ function bindBingoEvents(){
       size:+$("bingoSize").value,
       reward:$("bingoReward").value,
       tasks:bingoTasksFromUI(),
-      ordered:bingoSettings.ordered !== false,
+      ordered:bingoSettings.ordered === true,
       layout:bingoLayoutFromUI(),
       active:true,
       startedAt:new Date().toISOString()
     };
-    await sb.from("bingo_cards").delete().neq("player", "");
+    await sb.from("bingo_cards").delete().eq("workspace_id", WS());
     await saveGame("bingo_settings", bingoSettings);
     renderBingoSettings();
     if(currentPlayer) await openBingo();
@@ -327,7 +337,7 @@ function bindBingoEvents(){
 
   $("resetMyBingo").onclick = async () => {
     if(!currentPlayer || !bingoActive()) return;
-    await sb.from("bingo_cards").delete().eq("player", currentPlayer);
+    await sb.from("bingo_cards").delete().eq("player", currentPlayer).eq("workspace_id", WS());
     await openBingo();
   };
 }

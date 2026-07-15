@@ -99,16 +99,16 @@ function bsAppendSkins(board, plans, kind, n){
 
 async function loadBattleship(){
   if(!sb) return;
-  const st = await sb.from("game_state").select("data").eq("id", "battleship").maybeSingle();
+  const st = await sb.from("game_state").select("data").eq("id", "battleship").eq("workspace_id", WS()).maybeSingle();
   bs = st.data?.data || {live:false, grid:10, reward:"10 €", started_at:"", ships_total:0};
-  bsShots = (await sb.from("bs_shots").select("*")).data || [];
-  bsTorp  = (await sb.from("bs_torpedoes").select("*")).data || [];
+  bsShots = (await sb.from("bs_shots").select("*").eq("workspace_id", WS())).data || [];
+  bsTorp  = (await sb.from("bs_torpedoes").select("*").eq("workspace_id", WS())).data || [];
   bsPlayersMap = {};
-  ((await sb.from("players").select("email,name,avatar")).data || []).forEach(p => {
+  ((await sb.from("players").select("email,name,avatar").eq("workspace_id", WS())).data || []).forEach(p => {
     bsPlayersMap[(p.email || "").toLowerCase()] = {name:p.name, avatar:p.avatar};
   });
   if(admin){
-    bsShipsAdmin = (await sb.from("bs_ships").select("*")).data || [];
+    bsShipsAdmin = (await sb.from("bs_ships").select("*").eq("workspace_id", WS())).data || [];
     if(!bsDraftDirty) bsDraft = new Set(bsShipsAdmin.flatMap(s => s.cells || []));
   } else {
     bsShipsAdmin = [];
@@ -489,14 +489,14 @@ function bsFlash(txt){
 async function bsSaveShips(){
   const n = bs.grid || 10;
   const groups = bsGroups([...bsDraft], n);
-  await sb.from("bs_ships").delete().gte("id", 0);
+  await sb.from("bs_ships").delete().eq("workspace_id", WS());
   if(groups.length){
     const counts = {};
     const rows = groups.map(cells => {
       const info = bsSkinInfo(cells.length);
       counts[info.name] = (counts[info.name] || 0) + 1;
       const name = counts[info.name] > 1 ? `${info.name} ${counts[info.name]}` : info.name;
-      return { name, cells };
+      return { name, cells, workspace_id: WS() };
     });
     const { error } = await sb.from("bs_ships").insert(rows);
     if(error){ alert("Enregistrement impossible : " + error.message); return; }
@@ -508,18 +508,18 @@ async function bsSaveShips(){
 
 async function bsClearDraft(){
   bsDraft = new Set(); bsDraftDirty = true;
-  await sb.from("bs_ships").delete().gte("id", 0);
+  await sb.from("bs_ships").delete().eq("workspace_id", WS());
   await loadBattleship();
   bsFlash("🗑️ Bateaux effacés.");
 }
 
 async function bsLaunch(){
-  const ships = (await sb.from("bs_ships").select("id")).data || [];
+  const ships = (await sb.from("bs_ships").select("id").eq("workspace_id", WS())).data || [];
   if(!ships.length){ alert("Dessine et enregistre au moins un bateau avant de lancer."); return; }
   if(!confirm("Lancer la bataille ? Les tirs et torpilles précédents seront remis à zéro.")) return;
-  await sb.from("bs_shots").delete().gte("cell", 0);
-  await sb.from("bs_torpedoes").delete().neq("email", "");
-  await sb.from("bs_ships").update({ sunk:false, sunk_by:null }).gte("id", 0);
+  await sb.from("bs_shots").delete().eq("workspace_id", WS());
+  await sb.from("bs_torpedoes").delete().eq("workspace_id", WS());
+  await sb.from("bs_ships").update({ sunk:false, sunk_by:null }).eq("workspace_id", WS());
   bs = { ...bs, live:true, started_at:new Date().toISOString(), ships_total: ships.length, reward: ($("bsReward").value || "10 €") };
   await saveGame("battleship", bs);
   await loadBattleship();
@@ -528,9 +528,9 @@ async function bsLaunch(){
 async function bsStop(){
   if(!confirm("Terminer la bataille navale ?")) return;
   await bsArchive();                                    // sauvegarde dans l'historique d'abord
-  await sb.from("bs_shots").delete().gte("cell", 0);    // puis on remet à zéro
-  await sb.from("bs_torpedoes").delete().neq("email", "");
-  await sb.from("bs_ships").update({ sunk:false, sunk_by:null }).gte("id", 0);
+  await sb.from("bs_shots").delete().eq("workspace_id", WS());    // puis on remet à zéro
+  await sb.from("bs_torpedoes").delete().eq("workspace_id", WS());
+  await sb.from("bs_ships").update({ sunk:false, sunk_by:null }).eq("workspace_id", WS());
   bs = { ...bs, live:false, started_at:"", ships_total:0 };
   await saveGame("battleship", bs);
   await loadBattleship();
@@ -538,11 +538,12 @@ async function bsStop(){
 }
 
 async function bsArchive(){
-  const ships = (await sb.from("bs_ships").select("*")).data || [];
-  const shots = (await sb.from("bs_shots").select("*")).data || [];
+  const ships = (await sb.from("bs_ships").select("*").eq("workspace_id", WS())).data || [];
+  const shots = (await sb.from("bs_shots").select("*").eq("workspace_id", WS())).data || [];
   const sunk = ships.filter(s => s.sunk);
   await sb.from("game_history").insert({
     game:"battleship",
+    workspace_id: WS(),
     round: bs.started_at || "",
     started_at: bs.started_at || null,
     winner: [...new Set(sunk.map(s => s.sunk_by).filter(Boolean))].join(", "),
@@ -557,7 +558,7 @@ async function bsArchive(){
 // --- Admin : distribution des torpilles (pendant la partie) ---
 async function bsRenderDistribute(){
   if(!$("bsDistribute")) return;
-  const players = (await sb.from("players").select("name,email,avatar").order("last_seen", {ascending:false})).data || [];
+  const players = (await sb.from("players").select("name,email,avatar").eq("workspace_id", WS()).eq("status", "active").order("last_seen", {ascending:false})).data || [];
   const torpMap = {}; bsTorp.forEach(t => torpMap[(t.email || "").toLowerCase()] = t.count);
   // On inclut les comptes de test (marqués 🧪) pour pouvoir leur donner des torpilles en test
   $("bsDistribute").innerHTML = players.map(p => `
@@ -571,7 +572,7 @@ async function bsRenderDistribute(){
 
 async function bsGrant(email, name){
   const cur = bsTorp.find(t => (t.email || "").toLowerCase() === email)?.count || 0;
-  const { error } = await sb.from("bs_torpedoes").upsert({ email, name, count: cur + 1 });
+  const { error } = await sb.from("bs_torpedoes").upsert({ email, name, count: cur + 1, workspace_id: WS() });
   if(error){ alert("Distribution impossible : " + error.message); return; }
   await loadBattleship();
   bsRenderDistribute();
@@ -585,7 +586,7 @@ function bindBattleshipEvents(){
   $("bsGrid").onchange = async () => {
     bs = { ...bs, grid: +$("bsGrid").value };
     bsDraft = new Set(); bsDraftDirty = true;      // la grille change → on repart d'une grille vierge
-    await sb.from("bs_ships").delete().gte("id", 0);
+    await sb.from("bs_ships").delete().eq("workspace_id", WS());
     await saveGame("battleship", bs);              // persiste la taille (sinon loadBattleship l'écrase)
     await loadBattleship();
   };

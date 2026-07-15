@@ -179,6 +179,20 @@ button.terminatePulse{background:linear-gradient(135deg,#ff2e9f,#7b2cff)!importa
 
 /* ---------- Auth / header ---------- */
 .authArea{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+/* Sélecteur d'équipe (super admin) */
+.wsSwitcher{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border:2px solid var(--softline);border-radius:99px;padding:3px 10px;font-weight:800;font-size:13px;color:var(--ink2)}
+.wsSwitcher select{width:auto;min-width:0;border:0;background:transparent;font-weight:800;padding:4px 2px;font-size:13px;cursor:pointer;color:var(--ink)}
+/* Onboarding : rejoindre / créer une équipe */
+#onboarding .gateBox{max-width:460px}
+#onboarding label{margin-top:16px}
+#onboarding select,#onboarding input,#onboarding button{width:100%;margin-top:6px}
+.orSep{text-align:center;font-weight:800;color:var(--ink2);opacity:.7;margin:18px 0 4px}
+#onbPending{text-align:center}
+#onbPending p{font-weight:700;color:var(--ink2);line-height:1.5}
+/* Badge "à valider" */
+.pBadge{background:var(--grad);color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;font-weight:900;margin-left:2px}
+.subtab.hasPending{box-shadow:0 0 0 2px var(--pink)}
+.wsCur{color:var(--pink);font-weight:900}
 .userBox{display:flex;align-items:center;gap:8px;background:var(--soft);border:2px solid var(--softline);border-radius:99px;padding:4px 12px 4px 4px;font-weight:800;max-width:100%;min-width:0}
 #userName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
 #userAvatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 2px 6px #7b2cff33;flex:none}

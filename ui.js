@@ -23,22 +23,19 @@ function showPage(p){
 }
 window.showPage = showPage;
 
-// Reflète l'état de connexion (Google) + le rôle admin dans toute l'UI.
+// Reflète l'état (connexion / onboarding / workspace / rôle) dans toute l'UI.
 function renderAuth(){
   const loggedIn = !!currentUser;
+  const onboard = (typeof needsOnboarding === "function") && needsOnboarding();
 
-  // Déconnecté → la landing est le héros de la page, on masque l'en-tête (doublon)
   document.querySelector(".hero").classList.toggle("hidden", !loggedIn);
-
-  // En-tête : bouton connexion vs bloc utilisateur + déconnexion
   $("loginBtn").classList.toggle("hidden", loggedIn);
   $("logoutBtn").classList.toggle("hidden", !loggedIn);
   $("userBox").classList.toggle("hidden", !loggedIn);
 
-  // Bouton "vue joueur" (uniquement pour un vrai admin, pour tester)
   const vt = $("viewToggle");
   if(vt){
-    vt.classList.toggle("hidden", !realAdmin);
+    vt.classList.toggle("hidden", !realAdmin || onboard);
     vt.textContent = viewAsPlayer ? "👑 Repasser admin" : "👀 Vue joueur";
     vt.classList.toggle("testOn", viewAsPlayer);
   }
@@ -54,29 +51,33 @@ function renderAuth(){
     if(tag) tag.textContent = currentPlayer;
   }
 
-  // Onglets visibles seulement une fois connecté
-  $("tabs").classList.toggle("hidden", !loggedIn);
-  // Options réservées à l'admin
+  // Sélecteur d'équipe (super admin) + éléments réservés au super admin
+  if(typeof renderWorkspaceSwitcher === "function") renderWorkspaceSwitcher();
+  document.querySelectorAll(".superOnly").forEach(e => e.classList.toggle("hidden", !superAdmin));
+
+  // Onglets visibles une fois dans un workspace (pas pendant l'onboarding)
+  $("tabs").classList.toggle("hidden", !loggedIn || onboard);
   document.querySelectorAll(".adminOnly").forEach(e => e.classList.toggle("hidden", !admin));
 
-  // Texte d'ambiance
   $("modeText").textContent = !loggedIn
     ? "🔓 Connecte-toi avec Google pour entrer dans la partie."
-    : (admin
-        ? "👑 Mode admin — tu pilotes les jeux en direct."
-        : "🎮 Prêt(e) à jouer ? Choisis ton défi et fais monter le score !");
+    : onboard ? "👋 Choisis ou crée ton équipe pour commencer."
+    : (admin ? "👑 Mode admin — tu pilotes les jeux en direct." : "🎮 Prêt(e) à jouer ? Choisis ton défi et fais monter le score !");
 
-  // Les vues de jeu dépendent du rôle (joueur/admin) → re-rendu
   if(typeof renderBingoAvailability === "function") renderBingoAvailability();
   if(typeof renderWho === "function" && sb) renderWho();
+  if(admin && typeof loadPending === "function") loadPending();
 
-  // Aiguillage de page — atterrissage une seule fois par connexion
+  // Routage : gate → onboarding → app
   if(!loggedIn){
     authLanded = false;
     showPage("gate");
+  } else if(onboard){
+    authLanded = false;
+    showPage("onboarding");
+    if(typeof renderOnboarding === "function") renderOnboarding();
   } else if(!authLanded){
     authLanded = true;
-    // Admin → Dashboard admin ; joueur → Classement
     showPage(admin ? "admin" : "board");
   }
 }
@@ -99,8 +100,10 @@ function bindUiEvents(){
     document.querySelectorAll(".subpage").forEach(p => p.classList.add("hidden"));
     $(b.dataset.sub).classList.remove("hidden");
     if(b.dataset.sub === "adminUsers") loadUsers();
+    else if(b.dataset.sub === "adminPending") loadPending();
     else if(b.dataset.sub === "adminGains") loadGains();
     else if(b.dataset.sub === "adminBingos") loadPlayers();
     else if(b.dataset.sub === "adminHistory") loadHistory();
+    else if(b.dataset.sub === "adminWorkspaces") loadWorkspacesOverview();
   });
 }

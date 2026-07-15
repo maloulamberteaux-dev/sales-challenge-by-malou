@@ -1,46 +1,66 @@
-let currentUser = null;   // objet user Supabase (session Google)
-let currentPlayer = "";   // nom d'affichage servant d'identité de jeu
-let admin = false;        // admin EFFECTIF (peut être bridé par le mode "vue joueur")
-let realAdmin = false;    // vrai statut admin (email dans window.ADMIN_EMAILS)
-let viewAsPlayer = localStorage.getItem("viewAsPlayer") === "1"; // test : admin qui se voit en joueur
-let excludedNames = new Set(); // noms d'affichage des comptes de test (rempli au démarrage)
-let adminNames = new Set();    // noms d'affichage des admins (hors classement)
+let currentUser = null;      // objet user Supabase (session Google)
+let currentPlayer = "";      // nom d'affichage servant d'identité de jeu
+let currentWorkspace = null; // uuid du workspace (équipe) du user connecté
+let memberRole = "member";   // rôle dans son workspace : 'admin' | 'member'
+let memberStatus = "none";   // 'active' | 'pending' | 'none' (pas encore de fiche)
+let requestedWorkspace = null; // workspace demandé (en attente de validation)
+let superAdmin = false;      // Safir : accès à tous les workspaces
+let admin = false;           // admin EFFECTIF (super admin OU rôle admin), bridé par "vue joueur"
+let realAdmin = false;       // avant bridage "vue joueur"
+let viewAsPlayer = localStorage.getItem("viewAsPlayer") === "1";
+let excludedNames = new Set(); // noms d'affichage des comptes de test
+let adminNames = new Set();    // noms d'affichage des admins/super admins (hors classement)
 
-function isAdminEmail(email){
-  return (window.ADMIN_EMAILS || []).map(e => String(e).toLowerCase()).includes(String(email || "").toLowerCase());
+function isSuperAdminEmail(email){
+  return (window.SUPER_ADMIN_EMAILS || []).map(e => String(e).toLowerCase()).includes(String(email || "").toLowerCase());
 }
+// Le user connecté est-il admin (rôle ou super admin), indépendamment de "vue joueur" ?
+function isMeAdmin(){ return superAdmin || memberRole === "admin"; }
+
 function isAdminName(name){ return adminNames.has(name); }
-// Ne figure PAS dans les classements / gains : admin ou compte de test
 function isNonCompeting(name){ return excludedNames.has(name) || adminNames.has(name); }
-
-// Bascule "voir en tant que joueur" (seulement pour un vrai admin, propre à ce navigateur)
-function setViewAsPlayer(v){
-  viewAsPlayer = v;
-  if(v) localStorage.setItem("viewAsPlayer", "1"); else localStorage.removeItem("viewAsPlayer");
-  admin = realAdmin && !viewAsPlayer;
-}
 
 // Comptes de test : exclus des listes joueurs / vainqueurs / classements
 function isExcludedEmail(email){
   return (window.EXCLUDED_EMAILS || []).map(e => String(e).toLowerCase()).includes(String(email || "").toLowerCase());
 }
-function isExcludedName(name){
-  return excludedNames.has(name);
+function isExcludedName(name){ return excludedNames.has(name); }
+
+function recomputeAdmin(){
+  realAdmin = superAdmin || memberRole === "admin";
+  admin = realAdmin && !viewAsPlayer;
 }
 
-// Met à jour l'état (user / joueur / admin) à partir d'une session Supabase.
+// Bascule "voir en tant que joueur" (propre à ce navigateur)
+function setViewAsPlayer(v){
+  viewAsPlayer = v;
+  if(v) localStorage.setItem("viewAsPlayer", "1"); else localStorage.removeItem("viewAsPlayer");
+  recomputeAdmin();
+}
+
+// Session Google → identité + statut super admin
 function applySession(session){
   currentUser = session?.user || null;
   if(currentUser){
     const meta = currentUser.user_metadata || {};
     currentPlayer = (meta.full_name || meta.name || currentUser.email || "").trim();
-    const email = (currentUser.email || "").toLowerCase();
-    const allow = (window.ADMIN_EMAILS || []).map(e => String(e).toLowerCase());
-    realAdmin = allow.includes(email);
-    admin = realAdmin && !viewAsPlayer;   // en mode "vue joueur", on se bride volontairement
+    superAdmin = isSuperAdminEmail(currentUser.email);
   } else {
-    currentPlayer = "";
-    realAdmin = false;
-    admin = false;
+    currentPlayer = ""; superAdmin = false;
+    currentWorkspace = null; memberRole = "member"; memberStatus = "none";
   }
+  recomputeAdmin();
+}
+
+// Fiche membre résolue depuis la base → workspace + rôle + statut
+function applyMember(member){
+  if(member){
+    currentWorkspace = member.workspace_id || null;
+    memberRole = member.role || "member";
+    memberStatus = member.status || "active";
+    requestedWorkspace = member.requested_workspace_id || null;
+  } else {
+    currentWorkspace = null; memberRole = "member"; memberStatus = "none"; requestedWorkspace = null;
+  }
+  recomputeAdmin();
 }
