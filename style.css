@@ -301,11 +301,11 @@ button.google:hover{border-color:#ff87d1!important}
 .inviteRow button{flex:none;white-space:nowrap}
 .pendingAlert{background:linear-gradient(135deg,#fff3d6,#ffe9f7);border:2px solid var(--gold);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-weight:800;color:#7a5a00;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pendingAlert button{flex:none;margin-left:auto}
-.userCard{flex-wrap:wrap}
-.roleChip{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:var(--soft);border:1.5px solid var(--softline);color:var(--ink2);vertical-align:middle}
+.roleChip{flex:none;display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:var(--soft);border:1.5px solid var(--softline);color:var(--ink2);white-space:nowrap}
 .roleChip.adm{background:var(--grad);border-color:transparent;color:#fff}
-.uActions{display:flex;gap:6px;flex:none;margin-left:auto}
-.uActions button{width:auto!important;margin:0!important}
+/* Actions membre : toujours sur leur propre ligne, alignées à droite */
+.uActions{display:flex;gap:6px;flex:1 0 100%;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}
+.uActions button{width:auto!important;margin:0!important;flex:none}
 button.danger:hover{border-color:#ff5470!important;color:#d63a5a!important}
 @media(max-width:520px){.uActions{width:100%;margin-left:0;margin-top:6px}}
 
@@ -353,12 +353,17 @@ button.paidBtn{background:linear-gradient(135deg,#2fbf5a,#199e46)!important;colo
 .playerTag strong{font-size:20px;color:var(--ink)}
 
 /* ---------- Listes admin ---------- */
-.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
-.playerCard{background:#fff;border:2px solid var(--line);border-radius:var(--r-md);padding:14px;font-weight:800;display:flex;align-items:center;gap:12px;animation:fadeUp .3s ease}
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:12px}
+.playerCard{background:#fff;border:2px solid var(--line);border-radius:var(--r-md);padding:14px;font-weight:800;display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:fadeUp .3s ease}
 .pAvatar{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 3px 8px #7b2cff33;flex:none}
 .pAvatar.fallback{display:flex;align-items:center;justify-content:center;background:var(--grad);color:#fff;font-weight:900;font-size:20px}
-.pInfo{flex:1;min-width:0}
+.pInfo{flex:1 1 130px;min-width:0}
 .pInfo strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Ligne nom + badge rôle : le nom se tronque, le badge reste intact */
+.pName{display:flex;align-items:center;gap:6px;min-width:0}
+.pName .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* Sur petits écrans : avatar plus compact pour laisser de la place au nom */
+@media(max-width:420px){.pAvatar{width:38px;height:38px}.playerCard{padding:12px;gap:10px}}
 .pInfo small{display:block;color:var(--ink2);font-weight:700;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank{font-size:28px;flex:none;animation:wiggle 2.5s ease infinite}
 

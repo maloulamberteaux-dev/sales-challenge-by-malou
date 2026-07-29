@@ -70,9 +70,11 @@ async function loadPending(){
   box.innerHTML = list.length ? list.map(u => `
     <div class="playerCard">
       ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<span class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</span>`}
-      <div class="pInfo"><strong>${esc(u.name || u.email)}</strong><small>${esc(u.email)}</small></div>
-      <button class="small" data-ok="${esc(u.email)}">✅ Accepter</button>
-      <button class="small ghost" data-no="${esc(u.email)}">✖</button>
+      <div class="pInfo"><div class="pName"><span class="nm">${esc(u.name || u.email)}</span></div><small>${esc(u.email)}</small></div>
+      <div class="uActions">
+        <button class="small" data-ok="${esc(u.email)}">✅ Accepter</button>
+        <button class="small ghost" data-no="${esc(u.email)}">✖ Refuser</button>
+      </div>
     </div>`).join("") : "<p class='emptyBoard'>Aucune demande en attente 👌</p>";
   box.querySelectorAll("button[data-ok]").forEach(b => b.onclick = () => approveMember(b.dataset.ok));
   box.querySelectorAll("button[data-no]").forEach(b => b.onclick = () => rejectMember(b.dataset.no));
@@ -172,9 +174,9 @@ async function loadWorkspacesOverview(){
     const pend = members.filter(m => m.requested_workspace_id === w.id).length;
     return `<div class="playerCard">
       <span class="rank">🏢</span>
-      <div class="pInfo"><strong>${esc(w.name)}${w.id === currentWorkspace ? " • <span class='wsCur'>vue actuelle</span>" : ""}</strong>
+      <div class="pInfo"><div class="pName"><span class="nm">${esc(w.name)}</span>${w.id === currentWorkspace ? "<span class='roleChip adm'>vue actuelle</span>" : ""}</div>
         <small>${mine.length} membre(s) · ${admins} admin(s)${pend ? " · " + pend + " en attente" : ""}</small></div>
-      <button class="small${w.id === currentWorkspace ? " ghost" : ""}" data-ws="${w.id}">${w.id === currentWorkspace ? "Actuel" : "Voir"}</button>
+      <div class="uActions"><button class="small${w.id === currentWorkspace ? " ghost" : ""}" data-ws="${w.id}">${w.id === currentWorkspace ? "Actuel" : "Voir"}</button></div>
     </div>`;
   }).join("") || "<p class='emptyBoard'>Aucune équipe.</p>";
   box.querySelectorAll("button[data-ws]").forEach(b => b.onclick = () => switchWorkspace(b.dataset.ws));
