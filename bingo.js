@@ -292,7 +292,7 @@ function renderUsersList(){
     return `<div class="playerCard userCard">
       ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}
       <div class="pInfo">
-        <strong>${esc(u.name || u.email)}${isMe ? " (toi)" : ""} ${roleChip}</strong>
+        <div class="pName"><span class="nm">${esc(u.name || u.email)}${isMe ? " (toi)" : ""}</span>${roleChip}</div>
         <small>${esc(u.email)}</small>
         <small>🕐 ${timeAgo(u.last_seen)}</small>
       </div>
