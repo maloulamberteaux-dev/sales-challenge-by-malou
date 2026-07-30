@@ -182,6 +182,72 @@ async function loadWorkspacesOverview(){
   box.querySelectorAll("button[data-ws]").forEach(b => b.onclick = () => switchWorkspace(b.dataset.ws));
 }
 
+// --- Super admin : gestion de TOUS les membres (déplacement entre équipes) ---
+let _allMembersCache = [];
+
+async function loadAllMembers(){
+  if(!sb || !superAdmin) return;
+  await loadWorkspaces();
+  const { data } = await sb.from("players").select("*");
+  _allMembersCache = (data || []).sort((a, b) => (a.name || a.email || "").localeCompare(b.name || b.email || ""));
+  renderAllMembers();
+}
+
+function renderAllMembers(){
+  const box = $("allMembersList");
+  if(!box) return;
+  const wsName = {}; allWorkspaces.forEach(w => wsName[w.id] = w.name);
+  const q = ($("allMembersSearch")?.value || "").toLowerCase().trim();
+  const list = _allMembersCache.filter(u => {
+    const team = wsName[u.workspace_id] || "";
+    return !q || (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || team.toLowerCase().includes(q);
+  });
+  const managers = _allMembersCache.filter(u => u.role === "admin" && u.workspace_id).length;
+  if($("allMembersSummary")) $("allMembersSummary").textContent = `👥 ${_allMembersCache.length} membre(s) · 🏢 ${allWorkspaces.length} équipe(s) · 👑 ${managers} manager(s)`;
+
+  box.innerHTML = list.map(u => {
+    const isAdm = u.role === "admin";
+    const email = (u.email || "").toLowerCase();
+    const opts = allWorkspaces.map(w => `<option value="${w.id}"${w.id === u.workspace_id ? " selected" : ""}>${esc(w.name)}</option>`).join("");
+    const noTeam = !u.workspace_id ? `<option value="" selected>— sans équipe —</option>` : "";
+    const pend = u.status === "pending"
+      ? `<span class="roleChip">⏳ en attente${u.requested_workspace_id ? " → " + esc(wsName[u.requested_workspace_id] || "?") : ""}</span>` : "";
+    return `<div class="playerCard">
+      ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}
+      <div class="pInfo">
+        <div class="pName"><span class="nm">${esc(u.name || u.email)}</span><span class="roleChip ${isAdm ? "adm" : ""}">${isAdm ? "👑 Manager" : "Membre"}</span>${pend}</div>
+        <small>${esc(u.email)}</small>
+      </div>
+      <div class="uActions">
+        <label class="amTeam">🏢 <select data-move="${esc(email)}">${noTeam}${opts}</select></label>
+        <button class="small ghost" data-role="${esc(email)}" data-to="${isAdm ? "member" : "admin"}">${isAdm ? "⬇️ Simple membre" : "👑 Nommer Manager"}</button>
+        <button class="small ghost danger" data-del="${esc(email)}" title="Retirer de son équipe">🗑️</button>
+      </div>
+    </div>`;
+  }).join("") || `<p class="emptyBoard">${q ? "Aucun membre ne correspond 🔍" : "Aucun membre."}</p>`;
+
+  box.querySelectorAll("select[data-move]").forEach(s => s.onchange = () => moveMemberTo(s.dataset.move, s.value));
+  box.querySelectorAll("button[data-role]").forEach(b => b.onclick = () => setMemberRoleGlobal(b.dataset.role, b.dataset.to));
+  box.querySelectorAll("button[data-del]").forEach(b => b.onclick = () => removeMemberGlobal(b.dataset.del));
+}
+
+async function moveMemberTo(email, wsId){
+  if(!wsId) return;
+  await sb.from("players").update({ workspace_id: wsId, status: "active", requested_workspace_id: null }).eq("email", email);
+  await loadAllMembers();
+  if(typeof loadExcludedNames === "function") loadExcludedNames();
+}
+async function setMemberRoleGlobal(email, role){
+  await sb.from("players").update({ role }).eq("email", email);
+  await loadAllMembers();
+  if(typeof loadExcludedNames === "function") loadExcludedNames();
+}
+async function removeMemberGlobal(email){
+  if(!confirm("Retirer ce membre de son équipe ? Il devra redemander à rejoindre une équipe.")) return;
+  await sb.from("players").update({ workspace_id: null, status: "pending", requested_workspace_id: null }).eq("email", email);
+  await loadAllMembers();
+}
+
 function bindWorkspaceEvents(){
   $("onbJoin").onclick = requestJoin;
   $("onbCreate").onclick = createWorkspace;
@@ -191,4 +257,5 @@ function bindWorkspaceEvents(){
   $("inviteEmail").onkeydown = e => { if(e.key === "Enter") inviteMember(); };
   $("usersSearch").oninput = () => { if(typeof renderUsersList === "function") renderUsersList(); };
   $("newWsBtn").onclick = superCreateWorkspace;
+  if($("allMembersSearch")) $("allMembersSearch").oninput = () => renderAllMembers();
 }

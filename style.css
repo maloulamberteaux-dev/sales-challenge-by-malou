@@ -292,6 +292,11 @@ button.google:hover{border-color:#ff87d1!important}
 .rankRow .wins{color:var(--ink2);font-size:14px;flex:none}
 .emptyBoard{text-align:center;font-weight:700;color:var(--ink2);padding:20px 0}
 
+/* ---------- Gestion globale des membres (super admin) ---------- */
+.amHint{font-weight:700;color:var(--ink2);font-size:13px;margin:2px 0 12px;line-height:1.5}
+.amTeam{display:inline-flex;align-items:center;gap:4px;margin:0;font-weight:800;font-size:13px;color:var(--ink2)}
+.amTeam select{width:auto;min-width:120px;padding:7px 8px;font-size:13px;border-radius:10px;margin:0}
+
 /* ---------- Gestion des membres (admin) ---------- */
 .usersToolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 #usersSearch{flex:1;min-width:180px}

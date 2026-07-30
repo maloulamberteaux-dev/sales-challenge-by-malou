@@ -15,7 +15,7 @@ create table if not exists public.oie_board(
 alter table public.oie_board enable row level security;
 drop policy if exists "oie_board_admin" on public.oie_board;
 create policy "oie_board_admin" on public.oie_board for all
-  using (public.is_app_admin()) with check (public.is_app_admin());
+  using (public.is_ws_manager(workspace_id)) with check (public.is_ws_manager(workspace_id));
 
 -- Cases spéciales PUBLIQUES : positions connues, effet = NULL tant que non révélé
 -- (brouillard : le client affiche ❓ si effect null, l'icône sinon)
@@ -30,7 +30,7 @@ drop policy if exists "oie_cells_read" on public.oie_cells;
 drop policy if exists "oie_cells_admin" on public.oie_cells;
 create policy "oie_cells_read" on public.oie_cells for select using (true);
 create policy "oie_cells_admin" on public.oie_cells for all
-  using (public.is_app_admin()) with check (public.is_app_admin());
+  using (public.is_ws_manager(workspace_id)) with check (public.is_ws_manager(workspace_id));
 
 -- Joueurs sur le plateau (positions PUBLIQUES, écriture réservée admin/RPC)
 create table if not exists public.oie_players(
@@ -53,7 +53,7 @@ drop policy if exists "oie_players_read" on public.oie_players;
 drop policy if exists "oie_players_admin" on public.oie_players;
 create policy "oie_players_read" on public.oie_players for select using (true);
 create policy "oie_players_admin" on public.oie_players for all
-  using (public.is_app_admin()) with check (public.is_app_admin());
+  using (public.is_ws_manager(workspace_id)) with check (public.is_ws_manager(workspace_id));
 
 -- Fil "en direct" partagé par tous (le RPC y écrit les lignes de log)
 create table if not exists public.oie_events(
@@ -67,7 +67,7 @@ drop policy if exists "oie_events_read" on public.oie_events;
 drop policy if exists "oie_events_admin" on public.oie_events;
 create policy "oie_events_read" on public.oie_events for select using (true);
 create policy "oie_events_admin" on public.oie_events for all
-  using (public.is_app_admin()) with check (public.is_app_admin());
+  using (public.is_ws_manager(workspace_id)) with check (public.is_ws_manager(workspace_id));
 
 -- ------------------------------------------------------------
 -- 🚀 Lancement d'une partie : génère le plateau secret + les cases
@@ -94,9 +94,9 @@ declare
     'swap','swap','swap'];
 begin
   if v_email is null then raise exception 'not_authenticated'; end if;
-  if not public.is_app_admin() then raise exception 'not_admin'; end if;
   select workspace_id into v_ws from public.players where email = v_email;
   if v_ws is null then raise exception 'no_workspace'; end if;
+  if not public.is_ws_manager(v_ws) then raise exception 'not_manager'; end if;
 
   delete from public.oie_board   where workspace_id = v_ws;
   delete from public.oie_cells   where workspace_id = v_ws;
@@ -253,7 +253,7 @@ begin
     p.finished_at := now(); p.place := v_place;
     if v_place = 1 then
       v_log := v_log || ('🏆 ' || p.name || ' atteint l''arrivée et remporte ' || v_reward || ' !');
-      insert into public.results(game, player, round) values ('oie', p.name, v_round) on conflict do nothing;
+      insert into public.results(game, player, round, reward, workspace_id) values ('oie', p.name, v_round, v_reward, v_ws) on conflict do nothing;
     else
       v_log := v_log || ('🏁 ' || p.name || ' termine (' || v_place || 'ᵉ).');
     end if;

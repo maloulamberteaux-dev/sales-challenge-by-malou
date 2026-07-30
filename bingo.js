@@ -279,15 +279,15 @@ function renderUsersList(){
   const q = ($("usersSearch")?.value || "").toLowerCase().trim();
   const list = _usersCache.filter(u => !q || (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q));
   const admins = _usersCache.filter(u => u.role === "admin").length;
-  if($("usersSummary")) $("usersSummary").textContent = `👥 ${_usersCache.length} membre(s) · 👑 ${admins} admin(s)`;
+  if($("usersSummary")) $("usersSummary").textContent = `👥 ${_usersCache.length} membre(s) · 👑 ${admins} manager(s)`;
 
   const me = (currentUser?.email || "").toLowerCase();
   $("usersList").innerHTML = list.map(u => {
     const isMe = (u.email || "").toLowerCase() === me;
     const isAdm = u.role === "admin";
-    const roleChip = `<span class="roleChip ${isAdm ? "adm" : ""}">${isAdm ? "👑 Admin" : "Membre"}</span>`;
+    const roleChip = `<span class="roleChip ${isAdm ? "adm" : ""}">${isAdm ? "👑 Manager" : "Membre"}</span>`;
     const actions = (admin && !isMe) ? `<div class="uActions">
-      <button class="small ghost" data-role="${esc(u.email)}" data-to="${isAdm ? "member" : "admin"}">${isAdm ? "⬇️ Rétrograder" : "👑 Promouvoir"}</button>
+      <button class="small ghost" data-role="${esc(u.email)}" data-to="${isAdm ? "member" : "admin"}">${isAdm ? "⬇️ Simple membre" : "👑 Nommer Manager"}</button>
       <button class="small ghost danger" data-remove="${esc(u.email)}" title="Retirer de l'équipe">🗑️</button></div>` : "";
     return `<div class="playerCard userCard">
       ${u.avatar ? `<img src="${esc(u.avatar)}" class="pAvatar" alt=""/>` : `<div class="pAvatar fallback">${esc((u.name || "?")[0].toUpperCase())}</div>`}

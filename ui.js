@@ -48,6 +48,7 @@ function renderAuth(){
     const img = $("userAvatar");
     if(avatar){ img.src = avatar; img.style.display = "block"; }
     else { img.removeAttribute("src"); img.style.display = "none"; }
+    $("adminBadge").textContent = superAdmin ? "👑 Super admin" : "👑 Manager";
     $("adminBadge").classList.toggle("hidden", !admin);
     const tag = $("playerTagName");
     if(tag) tag.textContent = currentPlayer;
@@ -64,7 +65,7 @@ function renderAuth(){
   $("modeText").textContent = !loggedIn
     ? "🔓 Connecte-toi avec Google pour entrer dans la partie."
     : onboard ? "👋 Choisis ou crée ton équipe pour commencer."
-    : (admin ? "👑 Mode admin — tu pilotes les jeux en direct." : "🎮 Prêt(e) à jouer ? Choisis ton défi et fais monter le score !");
+    : (admin ? (superAdmin ? "👑 Super admin — tu pilotes toutes les équipes." : "👑 Manager — tu pilotes les jeux de ton équipe en direct.") : "🎮 Prêt(e) à jouer ? Choisis ton défi et fais monter le score !");
 
   if(typeof renderBingoAvailability === "function") renderBingoAvailability();
   if(typeof renderWho === "function" && sb) renderWho();
@@ -107,5 +108,6 @@ function bindUiEvents(){
     else if(b.dataset.sub === "adminBingos") loadPlayers();
     else if(b.dataset.sub === "adminHistory") loadHistory();
     else if(b.dataset.sub === "adminWorkspaces") loadWorkspacesOverview();
+    else if(b.dataset.sub === "adminAllMembers") loadAllMembers();
   });
 }
