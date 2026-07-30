@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=33"/>
+  <link rel="stylesheet" href="style.css?v=34"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -39,6 +39,7 @@
       <button class="tab" data-page="who">🎭 Qui suis-je ?</button>
       <button class="tab" data-page="bingo">💜 Bingo</button>
       <button class="tab" data-page="battleship">🚢 Touché-coulé</button>
+      <button class="tab" data-page="oie">🪿 Jeu de l'Oie</button>
     </nav>
 
     <section id="gate" class="card page">
@@ -312,6 +313,10 @@
           <h3>🚢 Touché-coulé</h3>
           <div id="boardBattleship" class="boardList"></div>
         </div>
+        <div class="boardCol">
+          <h3>🪿 Jeu de l'Oie</h3>
+          <div id="boardOie" class="boardList"></div>
+        </div>
       </div>
     </section>
 
@@ -395,6 +400,96 @@
       </div>
     </section>
 
+    <section id="oie" class="card page hidden">
+      <div class="header">
+        <div>
+          <h2>🪿 Jeu de l'Oie</h2>
+          <p>Chaque abo vendu = un lancer de dé. Avance, déclenche les cases spéciales et fonce vers l'arrivée 🏆</p>
+        </div>
+        <button id="oieReset" class="ghost small adminOnly hidden">🛑 Terminer la partie</button>
+      </div>
+      <div class="grid2">
+        <aside class="panel">
+          <div class="playerTag">
+            <span>Tu joues en tant que</span>
+            <strong id="oiePlayerName">...</strong>
+          </div>
+          <div class="statRow">
+            <div class="stat"><span id="oiePos">–</span><label>ta case</label></div>
+            <div class="stat"><span id="oieRolls">0</span><label>lancers 🎲</label></div>
+            <div class="stat"><span id="oieRank">–</span><label>ton rang</label></div>
+          </div>
+          <button id="oieRollBtn" class="big" disabled>🎲 Lancer le dé</button>
+
+          <div class="adminOnly hidden">
+            <div class="liveRow">
+              <span id="oieLiveChip" class="chip">⚙️ En préparation</span>
+            </div>
+            <div id="oieSettings">
+              <label>Nombre de cases</label>
+              <input id="oieCells" type="number" value="50" min="12" max="100"/>
+              <label>Récompense 🏆</label>
+              <input id="oieReward" value="40 €"/>
+              <label>Règle d'arrivée</label>
+              <select id="oieArrival">
+                <option value="overshoot" selected>Dépassement gagne</option>
+                <option value="exact">Arrivée exacte (rebond)</option>
+              </select>
+              <label>Densité de cases spéciales</label>
+              <select id="oieDensity">
+                <option value="0.25">Faible (~25%)</option>
+                <option value="0.4" selected>Moyenne (~40%)</option>
+                <option value="0.55">Forte (~55%)</option>
+              </select>
+              <label><input type="checkbox" id="oieFog" checked style="width:auto;margin-right:6px"/> Brouillard (cases ❓ mystères)</label>
+              <button id="oieLaunch">🚀 Lancer une nouvelle partie</button>
+            </div>
+            <label class="oieDistLabel">Distribuer les lancers (1 par abo · reco = 2 dés)</label>
+            <div id="oieDistribute" class="distList hidden"></div>
+            <button id="oieStop" class="ghost hidden">🛑 Terminer la partie</button>
+          </div>
+
+          <div class="rules">
+            🎲 1 abo vendu = 1 lancer · 🔁 1 reco = 2 dés<br>
+            ⭐ Cases spéciales à effets surprises<br>
+            🏆 Le premier à l'arrivée remporte la récompense
+          </div>
+        </aside>
+
+        <section class="stage">
+          <div id="oieWait" class="waitBox hidden">
+            <div class="spinner"><span>🪿</span></div>
+            <h3>Aucune partie en cours</h3>
+            <p class="loadingDots">L'admin prépare le plateau</p>
+          </div>
+          <div id="oiePlay">
+            <div class="stageHead">
+              <h3 id="oieTitle">🪿 Plateau</h3>
+              <span class="chip" id="oieRewardChip">🏆 40 €</span>
+            </div>
+            <div class="oieDicePanel">
+              <div class="oieDie" id="oieDie">🎲</div>
+              <div id="oieMsg" class="chip">🪿 En attente…</div>
+            </div>
+            <div id="oieBoard" class="oieBoard"></div>
+            <div class="oieLegendTitle">🗺️ Légende des cases <span>(survole pour l'explication)</span></div>
+            <div id="oieLegend" class="oieLegend"></div>
+            <div class="oieFeedTitle">📣 En direct</div>
+            <div id="oieFeed" class="oieFeed"></div>
+          </div>
+        </section>
+      </div>
+
+      <div id="oieDiceModal" class="diceModal hidden">
+        <div class="diceCard">
+          <div class="diceWho" id="oieDiceWho">Lancer…</div>
+          <div class="diceWrap" id="oieDiceWrap"><div class="bigDie">🎲</div></div>
+          <div class="diceResult" id="oieDiceResult"></div>
+          <button id="oieDiceContinue" class="diceGo hidden">Continuer ▶</button>
+        </div>
+      </div>
+    </section>
+
     <section id="admin" class="card page hidden">
       <div class="header">
         <div>
@@ -451,17 +546,18 @@
     </section>
   </main>
 
-  <script src="config.js?v=33"></script>
-  <script src="utils.js?v=33"></script>
-  <script src="storage.js?v=33"></script>
-  <script src="ui.js?v=33"></script>
-  <script src="supabase.js?v=33"></script>
-  <script src="workspace.js?v=33"></script>
-  <script src="who.js?v=33"></script>
-  <script src="bingo.js?v=33"></script>
-  <script src="battleship.js?v=33"></script>
-  <script src="board.js?v=33"></script>
-  <script src="history.js?v=33"></script>
-  <script src="app.js?v=33"></script>
+  <script src="config.js?v=34"></script>
+  <script src="utils.js?v=34"></script>
+  <script src="storage.js?v=34"></script>
+  <script src="ui.js?v=34"></script>
+  <script src="supabase.js?v=34"></script>
+  <script src="workspace.js?v=34"></script>
+  <script src="who.js?v=34"></script>
+  <script src="bingo.js?v=34"></script>
+  <script src="battleship.js?v=34"></script>
+  <script src="oie.js?v=34"></script>
+  <script src="board.js?v=34"></script>
+  <script src="history.js?v=34"></script>
+  <script src="app.js?v=34"></script>
 </body>
 </html>

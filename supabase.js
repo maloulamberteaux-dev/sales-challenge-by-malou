@@ -22,7 +22,14 @@ async function initSupabase(){
       if(currentPlayer && bingoActive()) openBingo();
     }
     if(payload.new.id === "battleship"){ bs = payload.new.data; loadBattleship(); }
+    if(payload.new.id === "oie"){ if(typeof oieOnRealtime === "function") oieOnRealtime(); }
   }).subscribe();
+
+  sb.channel("oie_changes")
+    .on("postgres_changes", {event:"*", schema:"public", table:"oie_players"}, p => { if((p.new?.workspace_id ?? p.old?.workspace_id) === currentWorkspace && typeof oieOnRealtime === "function") oieOnRealtime(); })
+    .on("postgres_changes", {event:"*", schema:"public", table:"oie_cells"},   p => { if((p.new?.workspace_id ?? p.old?.workspace_id) === currentWorkspace && typeof oieOnRealtime === "function") oieOnRealtime(); })
+    .on("postgres_changes", {event:"*", schema:"public", table:"oie_events"},  p => { if((p.new?.workspace_id ?? p.old?.workspace_id) === currentWorkspace && typeof oieOnRealtime === "function") oieOnRealtime(); })
+    .subscribe();
 
   sb.channel("bs_changes")
     .on("postgres_changes", {event:"*", schema:"public", table:"bs_shots"}, p => { if(p.new?.workspace_id === currentWorkspace || p.old) loadBattleship(); })
@@ -71,6 +78,7 @@ async function enterWorkspaceData(){
   await loadWho();
   await loadBingoSettings();
   await loadBattleship();
+  if(typeof loadOie === "function") await loadOie();
   await loadPlayers();
   await loadWhoSecret();
   await openBingo();

@@ -20,7 +20,8 @@ async function loadHistory(){
   const META = {
     bingo: {icon:"💜", name:"Bingo Commercial"},
     who: {icon:"🎭", name:"Qui suis-je ?"},
-    battleship: {icon:"🚢", name:"Touché-coulé"}
+    battleship: {icon:"🚢", name:"Touché-coulé"},
+    oie: {icon:"🪿", name:"Jeu de l'Oie"}
   };
   $("historyList").innerHTML = historyCache.map((h, i) => {
     const icon = (META[h.game] || META.who).icon;
@@ -28,6 +29,7 @@ async function loadHistory(){
     const when = fmtDate(h.ended_at);
     const sub = h.game === "bingo" ? `${h.data?.players || 0} joueur(s)`
       : h.game === "battleship" ? `${(h.data?.ships || []).filter(s => s.sunk).length}/${(h.data?.ships || []).length} bateaux coulés`
+      : h.game === "oie" ? `${(h.data?.standings || []).length} joueur(s) · ${h.data?.cells ?? "?"} cases`
       : `${h.data?.reveal_pct ?? 0}% dévoilé`;
     const win = h.winner ? `🏆 ${esc(h.winner)}` : "sans vainqueur";
     return `<div class="playerCard histItem" data-i="${i}">
@@ -89,6 +91,24 @@ function showHistoryDetail(i){
           <strong>${esc(s.name)}</strong>
           <span class="wins">${s.sunk ? "coulé par " + esc(s.sunk_by || "?") : "a survécu"}</span>
         </div>`).join("") : "<p>Aucun bateau.</p>") +
+      `</div>`;
+  } else if(h.game === "oie"){
+    const d = h.data || {};
+    const st = d.standings || [];
+    const medals = ["🥇", "🥈", "🥉"];
+    inner += `<h3>🪿 Jeu de l'Oie <small class="histWhen">${when}</small></h3>
+      <div class="histTags">
+        <span class="chip">🏆 ${esc(d.reward || "40 €")}</span>
+        <span class="chip">🎲 ${d.cells ?? "?"} cases</span>
+        <span class="chip">${h.winner ? "🏅 " + esc(h.winner) : "Pas de vainqueur"}</span>
+      </div>
+      <div class="boardList">` +
+      (st.length ? st.map((s, idx) => `
+        <div class="rankRow${s.place === 1 ? " top" : ""}">
+          <span class="medal">${s.place ? (medals[s.place-1] || "🏅") : "▫️"}</span>
+          <strong>${esc(s.player)}</strong>
+          <span class="wins">${s.finished ? "arrivé" : "case " + s.pos}</span>
+        </div>`).join("") : "<p>Aucun joueur.</p>") +
       `</div>`;
   } else {
     const d = h.data || {};
