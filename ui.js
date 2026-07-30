@@ -8,6 +8,7 @@ function updateGameStatus(){
   if(typeof who !== "undefined" && who && who.live) live.push("🎭 Qui suis-je");
   if(typeof bingoSettings !== "undefined" && bingoSettings && bingoSettings.active) live.push("💜 Bingo");
   if(typeof bs !== "undefined" && bs && bs.live) live.push("🚢 Touché-coulé");
+  if(typeof oie !== "undefined" && oie && oie.live) live.push("🪿 Jeu de l'Oie");
   el.textContent = live.length ? "🔴 En cours : " + live.join(" · ") : "💤 Aucune partie en cours";
   el.classList.toggle("statusLive", live.length > 0);
 }
@@ -20,6 +21,7 @@ function showPage(p){
   if(p === "admin"){ loadUsers(); loadPlayers(); }
   if(p === "board"){ loadLeaderboard(); }
   if(p === "battleship"){ loadBattleship(); }
+  if(p === "oie"){ loadOie(); }
 }
 window.showPage = showPage;
 

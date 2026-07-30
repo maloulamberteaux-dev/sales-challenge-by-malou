@@ -5,6 +5,7 @@ async function loadLeaderboard(){
   let {data, error} = await sb.from("results").select("game,player,won_at").eq("workspace_id", WS());
   if(error){
     $("boardWho").innerHTML = $("boardBingo").innerHTML = $("boardBattleship").innerHTML = "<p>⚠️ Table <b>results</b> absente — lance le SQL de setup.</p>";
+    if($("boardOie")) $("boardOie").innerHTML = "";
     return;
   }
   const agg = {};
@@ -15,6 +16,7 @@ async function loadLeaderboard(){
   $("boardWho").innerHTML = renderBoard(agg.who);
   $("boardBingo").innerHTML = renderBoard(agg.bingo);
   $("boardBattleship").innerHTML = renderBoard(agg.battleship);
+  if($("boardOie")) $("boardOie").innerHTML = renderBoard(agg.oie);
 }
 
 // Extrait le montant numérique d'une récompense ("50 € pour..." -> 50)
@@ -29,7 +31,8 @@ function fmtEuro(n){
 const GAINS_GAMES = {
   who: {i:"🎭", n:"Qui suis-je"},
   bingo: {i:"💜", n:"Bingo"},
-  battleship: {i:"🚢", n:"Touché-coulé (coup fatal)"}
+  battleship: {i:"🚢", n:"Touché-coulé (coup fatal)"},
+  oie: {i:"🪿", n:"Jeu de l'Oie"}
 };
 
 // 💰 Suivi des gains (dashboard admin) : total par personne + journal détaillé

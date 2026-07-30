@@ -3,6 +3,7 @@ async function init(){
   bindWhoEvents();
   bindBingoEvents();
   bindBattleshipEvents();
+  bindOieEvents();
   bindWorkspaceEvents();
   renderAuth();          // état déconnecté par défaut (affiche l'écran de connexion)
 
